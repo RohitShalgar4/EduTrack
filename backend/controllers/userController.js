@@ -93,9 +93,12 @@ export const login = async (req, res) => {
             _id: user._id,
             username: user.username,
             fullName: user.fullName,
-            profilePhoto: user.profilePhoto
+            profilePhoto: user.profilePhoto,
+            message: "Logged in successfully.",
+            success: true,
+            role: user.role || "student"
         });
-
+        
     } catch (error) {
         console.log(error);
     }
