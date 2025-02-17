@@ -10,9 +10,14 @@ export const getStudentData = async (req, res) => {
       return res.status(404).json({ message: 'Student data not found' });
     }
 
-    // Calculate the current CGPA (latest semester's CGPA)
-    const currentCgpa = student.semester_results.length > 0
-      ? student.semester_results[student.semester_results.length - 1].cgpa
+    // Calculate the current CGPA (last element of previous_cgpa array)
+    const currentCgpa = student.previous_cgpa.length > 0
+      ? student.previous_cgpa[student.previous_cgpa.length - 1]
+      : 0;
+
+    // Calculate the current SGPA (last element of previous_cgpa array)
+    const currentSgpa = student.previous_cgpa.length > 0
+      ? student.previous_cgpa[student.previous_cgpa.length - 1]
       : 0;
 
     // Calculate the overall attendance percentage
@@ -21,14 +26,23 @@ export const getStudentData = async (req, res) => {
       ? (totalAttendance / student.attendance.length).toFixed(2)
       : 0;
 
+    // Create semesterProgress array from semester_results
+    const semesterProgress = student.semester_results.map(result => ({
+      semester: `Sem ${result.semester}`, // Format semester as "Sem 1", "Sem 2", etc.
+      percentage: result.percentage, // Use the percentage field
+    }));
+
     // Map the response to match the frontend's expected structure
     const studentData = {
       full_name: student.full_name,
       registration_number: student.registration_number,
-      cgpa: currentCgpa,
+      cgpa: currentCgpa, // Use the last element of previous_cgpa as CGPA
+      sgpa: currentSgpa, // Use the last element of previous_cgpa as SGPA
       current_semester: student.current_semester,
       class_rank: student.class_rank,
       attendance: averageAttendance,
+      attendanceData: student.attendance, // Send attendance data from the database
+      semesterProgress, // Send semesterProgress array
     };
 
     res.status(200).json(studentData);
