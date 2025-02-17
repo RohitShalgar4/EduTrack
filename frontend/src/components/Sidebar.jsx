@@ -12,12 +12,8 @@ const SideBar = ({ children }) => {
   return (
     <div className="min-h-screen flex bg-gray-100">
       {/* Sidebar */}
-      <aside className="w-64 bg-blue-700 text-white">
+      <aside className="w-64 m-15 bg-blue-700 text-white">
         <div className="p-4">
-          <div className="flex items-center gap-2 m-8 mb-8">
-            <GraduationCap className="w-8 h-8" />
-            <span className="text-xl font-bold">StudentHub</span>
-          </div>
           <nav className="space-y-2">
             <Link
               to="/"
