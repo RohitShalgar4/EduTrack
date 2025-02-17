@@ -1,36 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { School, Menu } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios'; // Assuming you use axios for API calls
+import { BASE_URL } from '../main';
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const [isDark, setIsDark] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [user, setUser] = useState(null);
     const navigate = useNavigate();
 
-    // Simulating user state - in real app would come from auth
-    const user = {
-        name: "John Doe",
-        photoUrl: "/api/placeholder/32/32",
-        role: "instructor"
-    };
+    useEffect(() => {
+        // Fetch user data from your backend API
+        const fetchUser = async () => {
+            try {
+                const response = await axios.get(`${BASE_URL}/api/v1/student`); // Adjust API endpoint
+                setUser(response.data); 
+            } catch (error) {
+                console.error('Error fetching user:', error);
+            }
+        };
 
-    const toggleTheme = () => {
-        setIsDark(!isDark);
-        // In real app, would handle theme change here
-    };
+        fetchUser();
+    }, []);
 
     const handleLogout = () => {
-        // Handle logout logic here
         setIsDropdownOpen(false);
+        setUser(null); // Clear user state on logout
         navigate('/login');
-    };
-
-    // Close dropdown when clicking outside
-    const handleClickOutside = (e) => {
-        if (isDropdownOpen && !e.target.closest('.dropdown-container')) {
-            setIsDropdownOpen(false);
-        }
     };
 
     return (
@@ -47,12 +44,14 @@ const Navbar = () => {
                 <div className="flex items-center gap-6">
                     {user ? (
                         <div className="flex items-center gap-4">
-                            <img
-                                src={user?.photoUrl}
-                                alt="User Avatar" 
-                                className="w-10 h-10 rounded-full border border-gray-300 object-cover"
-                            />
-                        
+                            {user.photo_url && (
+                                <img
+                                    src={user.photo_url}
+                                    alt="User Avatar" 
+                                    className="w-10 h-10 rounded-full border border-gray-300 object-cover"
+                                />
+                            )}
+
                             <div className="relative dropdown-container">
                                 <button
                                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -104,12 +103,6 @@ const Navbar = () => {
                                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
                             >
                                 Login
-                            </Link>
-                            <Link 
-                                to="/signup"
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                            >
-                                Signup
                             </Link>
                         </div>
                     )}
