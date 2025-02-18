@@ -96,9 +96,9 @@ const StudentDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm">
+        <div className="bg-white p-6 rounded-xl shadow-sm max-w-full overflow-hidden">
           <h2 className="text-lg font-semibold mb-4">Semester-wise Progress</h2>
-          <BarChart width={500} height={300} data={student.semesterProgress}>
+          <BarChart width={400} height={300} data={student.semesterProgress}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="semester" />
             <YAxis />
@@ -108,17 +108,20 @@ const StudentDashboard = () => {
           </BarChart>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">Attendance Trend</h2>
-          <LineChart width={500} height={300} data={student.attendanceData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="attendance" stroke="#3B82F6" name="Attendance %" />
-          </LineChart>
-        </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm max-w-full overflow-hidden">
+  <h2 className="text-lg font-semibold mb-4">Attendance Trend</h2>
+  <div className="overflow-x-auto">
+    <LineChart width={500} height={300} data={student.attendanceData}>
+      <CartesianGrid strokeDasharray="3 3" />
+      <XAxis dataKey="month" />
+      <YAxis />
+      <Tooltip />
+      <Legend />
+      <Line type="monotone" dataKey="attendance" stroke="#3B82F6" name="Attendance %" />
+    </LineChart>
+  </div>
+</div>
+
       </div>
     </div>
   );
