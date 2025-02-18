@@ -7,7 +7,7 @@ export const register = async (req, res) => {
         const { 
             full_name, email, password, confirmPassword, Mobile_No, Parent_No, address, registration_number, 
             Department, class: userClass, abc_id, previous_cgpa, previous_percentages, current_semester, class_rank, 
-            attendance, photo_url, achievements, gender 
+            attendance, semesterProgress, photo_url, achievements, gender 
         } = req.body;
         
         // Ensure all required fields are included in the request
@@ -48,6 +48,7 @@ export const register = async (req, res) => {
             current_semester,
             class_rank,
             attendance,
+            semesterProgress,
             photo_url,
             achievements,
             gender
