@@ -26,12 +26,6 @@ export const getStudentData = async (req, res) => {
       ? (totalAttendance / student.attendance.length).toFixed(2)
       : 0;
 
-    // Create semesterProgress array from semester_results
-    const semesterProgress = student.semester_results.map(result => ({
-      semester: `Sem ${result.semester}`, // Format semester as "Sem 1", "Sem 2", etc.
-      percentage: result.percentage, // Use the percentage field
-    }));
-
     // Map the response to match the frontend's expected structure
     const studentData = {
       full_name: student.full_name,
@@ -42,7 +36,7 @@ export const getStudentData = async (req, res) => {
       class_rank: student.class_rank,
       attendance: averageAttendance,
       attendanceData: student.attendance, // Send attendance data from the database
-      semesterProgress, // Send semesterProgress array
+      semesterProgress: student.semesterProgress, // Send semesterProgress array
     };
 
     res.status(200).json(studentData);
