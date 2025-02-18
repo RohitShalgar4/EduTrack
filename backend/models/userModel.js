@@ -69,20 +69,18 @@ const userModel = new mongoose.Schema({
             required: true
         }
     }],
-    semester_results: [{
-        semester: {
-            type: Number,
-            required: true
-        },
-        cgpa: {
-            type: Number,
-            required: true
-        },
-        percentage: {
-            type: Number,
-            required: true
-        }
-    }],
+    semesterProgress: [
+    {
+      semester: {
+        type: Number,
+        required: true
+      },
+      percentage: {
+        type: Number,
+        required: true
+      }
+    }
+  ],
     photo_url: {
         type: String,
         required: true
