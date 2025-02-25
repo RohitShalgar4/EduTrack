@@ -7,17 +7,23 @@ import { BASE_URL } from '../main';
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(null); // Ensure initial state is null
     const navigate = useNavigate();
 
     useEffect(() => {
         // Fetch user data from your backend API
         const fetchUser = async () => {
             try {
-                const response = await axios.get(`${BASE_URL}/api/v1/student`); // Adjust API endpoint
-                setUser(response.data); 
+                const response = await axios.get(`${BASE_URL}/api/v1/student`);
+                console.log('User data:', response.data); // Debugging
+                if (response.data && Object.keys(response.data).length > 0) {
+                    setUser(response.data); // Set user only if data is valid
+                } else {
+                    setUser(null); // Set user to null if data is empty
+                }
             } catch (error) {
                 console.error('Error fetching user:', error);
+                setUser(null); // Ensure user is null on error
             }
         };
 
@@ -97,6 +103,7 @@ const Navbar = () => {
                             </div>
                         </div>
                     ) : (
+                        // Display Login button if user is not logged in
                         <div className="flex items-center gap-2">
                             <Link 
                                 to="/login"
@@ -127,35 +134,47 @@ const Navbar = () => {
                 {isOpen && (
                     <div className="absolute top-16 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
                         <div className="flex flex-col p-4 space-y-4">
-                            <Link 
-                                to="/my-learning" 
-                                onClick={() => setIsOpen(false)}
-                                className="hover:text-blue-600"
-                            >
-                                My Learning
-                            </Link>
-                            <Link 
-                                to="/profile"
-                                onClick={() => setIsOpen(false)}
-                                className="hover:text-blue-600"
-                            >
-                                Edit Profile
-                            </Link>
-                            {user?.role === 'instructor' && (
+                            {user ? (
+                                <>
+                                    <Link 
+                                        to="/my-learning" 
+                                        onClick={() => setIsOpen(false)}
+                                        className="hover:text-blue-600"
+                                    >
+                                        My Learning
+                                    </Link>
+                                    <Link 
+                                        to="/profile"
+                                        onClick={() => setIsOpen(false)}
+                                        className="hover:text-blue-600"
+                                    >
+                                        Edit Profile
+                                    </Link>
+                                    {user.role === 'instructor' && (
+                                        <Link 
+                                            to="/admin/dashboard"
+                                            onClick={() => setIsOpen(false)}
+                                            className="hover:text-blue-600"
+                                        >
+                                            Dashboard
+                                        </Link>
+                                    )}
+                                    <button 
+                                        onClick={handleLogout}
+                                        className="text-left hover:text-blue-600"
+                                    >
+                                        Log out
+                                    </button>
+                                </>
+                            ) : (
                                 <Link 
-                                    to="/admin/dashboard"
+                                    to="/login"
                                     onClick={() => setIsOpen(false)}
                                     className="hover:text-blue-600"
                                 >
-                                    Dashboard
+                                    Login
                                 </Link>
                             )}
-                            <button 
-                                onClick={handleLogout}
-                                className="text-left hover:text-blue-600"
-                            >
-                                Log out
-                            </button>
                         </div>
                     </div>
                 )}
