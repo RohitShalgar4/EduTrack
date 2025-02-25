@@ -29,7 +29,7 @@ const Login = () => {
   
       dispatch(setAuthUser(res.data));
   
-      navigate("/");
+      navigate("/dashboard");
     } catch (error) {
       console.error("Error:", error);
       toast.error(error.response?.data?.message || "An error occurred during login");
