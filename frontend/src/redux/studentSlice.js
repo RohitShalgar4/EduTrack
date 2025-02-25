@@ -14,9 +14,21 @@ const studentSlice = createSlice({
     clearStudentData: (state) => {
       state.data = null; // Clear student data if needed (e.g., logout)
     },
+    addStudent: (state, action) => {
+      state.data.push(action.payload);
+    },
+    updateStudent: (state, action) => {
+      const index = state.data.findIndex((student) => student.registration_number === action.payload.registration_number);
+      if (index !== -1) {
+        state.data[index] = action.payload;
+      }
+    },
+    deleteStudent: (state, action) => {
+      state.data = state.data.filter((student) => student.registration_number !== action.payload);
+    },  
   },
 });
 
-export const { setStudentData, clearStudentData } = studentSlice.actions;
+export const { setStudentData, clearStudentData, addStudent, updateStudent, deleteStudent } = studentSlice.actions;
 
 export default studentSlice.reducer; // This is the student reducer
