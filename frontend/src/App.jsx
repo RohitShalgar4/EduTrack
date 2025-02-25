@@ -5,6 +5,8 @@ import Login from "./pages/Login";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout from "./components/Layout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import LandingPage from "./components/LandingPage";
 
 function App() {
   console.log("App - Rendering router"); // Debugging: Log when App renders
@@ -14,23 +16,35 @@ function App() {
       <div className="min-h-screen bg-gray-50">
         <Toaster position="top-right" />
         <Routes>
+          {/* Public Route: Landing Page */}
+          <Route path="/" element={<LandingPage />} />
+
           {/* Public Route: Login Page */}
           <Route path="/login" element={<Login />} />
 
           {/* Protected Route: Student Dashboard (only accessible by 'student' role) */}
           <Route element={<MainLayout />}>
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute allowedRoles={["student"]}>
-                <StudentDashboard />
-              </ProtectedRoute>
-            } 
-          />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["student"]}>
+                  <StudentDashboard />
+                </ProtectedRoute>
+              }
+            />
           </Route>
 
-          {/* Redirect root to /dashboard if authenticated */}
-          <Route path="/" element={<Navigate to="/dashboard" />} />
+          {/* Protected Route: Admin Dashboard (only accessible by 'admin' role) */}
+          <Route element={<MainLayout />}>
+            <Route
+              path="/admin/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+          </Route>
 
           {/* Fallback Route: Redirect to Login */}
           <Route path="*" element={<Navigate to="/login" />} />
