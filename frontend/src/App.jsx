@@ -34,7 +34,7 @@ function App() {
           </Route>
 
           {/* Protected Route: Admin Dashboard (only accessible by 'admin' role) */}
-          <Route element={<MainLayout />}>
+          {/* <Route element={<MainLayout />}>
             <Route
               path="/admin/dashboard"
               element={
@@ -43,7 +43,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-          </Route>
+          </Route> */}
 
           {/* Fallback Route: Redirect to Login */}
           {/* <Route path="*" element={<Navigate to="/login" />} /> */}
