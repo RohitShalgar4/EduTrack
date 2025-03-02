@@ -6,11 +6,19 @@ import StudentDashboard from "./pages/student/StudentDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout from "./components/Layout";
 import LandingPage from "./components/LandingPage";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AddStudent from "./pages/admin/forms/AddStudent";
 
 function App() {
   console.log("App - Rendering router"); // Debugging: Log when App renders
 
   return (
+    // <Router>
+    //   <Routes>
+    //   <Route path="/dashboard" element={<AdminDashboard />} />
+    //   </Routes>
+    // </Router>
+    
     <Router>
       <div className="min-h-screen bg-gray-50">
         <Toaster position="top-right" />
