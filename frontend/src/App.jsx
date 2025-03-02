@@ -5,7 +5,6 @@ import Login from "./pages/Login";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout from "./components/Layout";
-import AdminDashboard from "./pages/admin/AdminDashboard";
 import LandingPage from "./components/LandingPage";
 
 function App() {
