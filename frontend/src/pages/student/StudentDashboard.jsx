@@ -98,29 +98,31 @@ const StudentDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm max-w-full overflow-hidden">
           <h2 className="text-lg font-semibold mb-4">Semester-wise Progress</h2>
-          <BarChart width={400} height={300} data={student.semesterProgress}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="semester" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="percentage" fill="#3B82F6" name="Overall Percentage" />
-          </BarChart>
+          <div className="overflow-x-auto">
+            <BarChart width={400} height={300} data={student.semesterProgress}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="semester" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="percentage" fill="#3B82F6" name="Overall Percentage" />
+            </BarChart>
+          </div>
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm max-w-full overflow-hidden">
-  <h2 className="text-lg font-semibold mb-4">Attendance Trend</h2>
-  <div className="overflow-x-auto">
-    <LineChart width={500} height={300} data={student.attendanceData}>
-      <CartesianGrid strokeDasharray="3 3" />
-      <XAxis dataKey="month" />
-      <YAxis />
-      <Tooltip />
-      <Legend />
-      <Line type="monotone" dataKey="attendance" stroke="#3B82F6" name="Attendance %" />
-    </LineChart>
-  </div>
-</div>
+          <h2 className="text-lg font-semibold mb-4">Attendance Trend</h2>
+          <div className="overflow-x-auto">
+            <LineChart width={500} height={300} data={student.attendanceData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="attendance" stroke="#3B82F6" name="Attendance %" />
+            </LineChart>
+          </div>
+        </div>
 
       </div>
     </div>
