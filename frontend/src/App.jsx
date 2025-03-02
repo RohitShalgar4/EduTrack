@@ -47,7 +47,7 @@ function App() {
           </Route>
 
           {/* Fallback Route: Redirect to Login */}
-          <Route path="*" element={<Navigate to="/login" />} />
+          {/* <Route path="*" element={<Navigate to="/login" />} /> */}
         </Routes>
       </div>
     </Router>
