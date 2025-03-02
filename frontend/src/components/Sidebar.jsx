@@ -20,7 +20,7 @@ const SideBar = ({ children }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const authUser = useSelector((state) => state.user.authUser);
-  const [isOpen, setIsOpen] = useState(false); // Drawer starts closed
+  const [isOpen, setIsOpen] = useState(false);
   
   // Close drawer when clicking outside on mobile
   useEffect(() => {
@@ -142,7 +142,7 @@ const SideBar = ({ children }) => {
           <div className="fixed top-4 left-4 z-50 lg:absolute">
             <button 
               onClick={() => setIsOpen(!isOpen)}
-              className="sidebar-toggle p-2 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="sidebar-toggle p-2 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700"
             >
               {isOpen ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
             </button>
