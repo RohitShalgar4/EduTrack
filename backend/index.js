@@ -36,10 +36,6 @@ app.use(
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/student", studentRoute);
 
-//APIs
-
-app.use("/api/v1/user", userRoute);
-
 app.listen(PORT, () => {
   console.log(`Server listen at port ${PORT}`);
 });
