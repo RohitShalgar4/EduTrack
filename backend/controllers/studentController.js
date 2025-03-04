@@ -3,12 +3,18 @@ import { User } from "../models/userModel.js";
 // Controller to fetch student data
 export const getStudentData = async (req, res) => {
   try {
-    // Fetch the student data from the database
-    const student = await User.findOne(); // Adjust this query as needed (e.g., find by ID)
+    const userId = req.params.id;
+    console.log('Fetching data for user ID:', userId);
+
+    // Fetch the student data for the specific user ID
+    const student = await User.findById(userId);
 
     if (!student) {
+      console.log('Student not found for ID:', userId);
       return res.status(404).json({ message: 'Student data not found' });
     }
+
+    console.log('Found student:', student.full_name, 'with ID:', student._id);
 
     // Calculate the current CGPA (last element of previous_cgpa array)
     const currentCgpa = student.previous_cgpa.length > 0
@@ -28,17 +34,19 @@ export const getStudentData = async (req, res) => {
 
     // Map the response to match the frontend's expected structure
     const studentData = {
+      _id: student._id, // Include the user ID in the response
       full_name: student.full_name,
       registration_number: student.registration_number,
-      cgpa: currentCgpa, // Use the last element of previous_cgpa as CGPA
-      sgpa: currentSgpa, // Use the last element of previous_cgpa as SGPA
+      cgpa: currentCgpa,
+      sgpa: currentSgpa,
       current_semester: student.current_semester,
       class_rank: student.class_rank,
       attendance: averageAttendance,
-      attendanceData: student.attendance, // Send attendance data from the database
-      semesterProgress: student.semesterProgress, // Send semesterProgress array
+      attendanceData: student.attendance,
+      semesterProgress: student.semesterProgress,
     };
 
+    console.log('Sending student data with ID:', studentData._id);
     res.status(200).json(studentData);
   } catch (error) {
     console.error('Error fetching student data:', error);
