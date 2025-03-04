@@ -1,21 +1,26 @@
 // userSlice.js
 import { createSlice } from '@reduxjs/toolkit';
 
+const initialState = {
+  authUser: null,
+};
+
 const userSlice = createSlice({
   name: 'user',
-  initialState: {
-    authUser: null,
-  },
+  initialState,
   reducers: {
     setAuthUser: (state, action) => {
-        console.log("Redux - setAuthUser Payload:", action.payload); // Debug Redux action payload
-        state.authUser = {
-          ...action.payload,
-          role: action.payload.role || "student", // Ensure role is always set
-        };
-      },      
+      console.log("Redux - setAuthUser Payload:", action.payload);
+      state.authUser = {
+        ...action.payload,
+        role: action.payload.role || "student",
+      };
+    },
+    logoutUser: (state) => {
+      state.authUser = null;
+    },
   },
 });
 
-export const { setAuthUser } = userSlice.actions;
+export const { setAuthUser, logoutUser } = userSlice.actions;
 export default userSlice.reducer;
