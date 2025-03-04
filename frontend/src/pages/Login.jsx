@@ -1,10 +1,11 @@
 // Login.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { useDispatch } from 'react-redux';
-import { setAuthUser } from '../redux/userSlice';
+import { setAuthUser, logoutUser } from '../redux/userSlice';
+import { clearStudentData } from '../redux/studentSlice';
 import { BASE_URL } from '../main';
 
 const Login = () => {
@@ -15,9 +16,19 @@ const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    // Clear all previous state when mounting login component
+    dispatch(logoutUser());
+    dispatch(clearStudentData());
+  }, [dispatch]);
+
   const onSubmitHandler = async (e) => {
     e.preventDefault();
     try {
+      // Clear any existing state before login attempt
+      dispatch(logoutUser());
+      dispatch(clearStudentData());
+
       const res = await axios.post(`${BASE_URL}/api/v1/user/login`, user, {
         headers: {
           "Content-Type": "application/json",
@@ -25,13 +36,17 @@ const Login = () => {
         withCredentials: true,
       });
   
-      console.log("Login response:", res.data); // Debug API response
-  
+      console.log("Login response:", res.data);
+      
+      if (!res.data._id) {
+        throw new Error('Invalid response from server - no user ID');
+      }
+
+      // Set the auth user with the response data
       dispatch(setAuthUser(res.data));
-  
       navigate("/dashboard");
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Login Error:", error);
       toast.error(error.response?.data?.message || "An error occurred during login");
     }
   };
@@ -43,13 +58,13 @@ const Login = () => {
           <h1 className="text-3xl font-bold text-center mb-8 text-white">Login</h1>
           <form onSubmit={onSubmitHandler} className="space-y-6">
             <div>
-              <label className="block text-gray-300 text-sm font-medium mb-2">Username</label>
+              <label className="block text-gray-300 text-sm font-medium mb-2">Email</label>
               <input
                 value={user.email}
                 onChange={(e) => setUser({ ...user, email: e.target.value })}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 transition duration-200"
-                type="text"
-                placeholder="Enter your username"
+                type="email"
+                placeholder="Enter your email"
               />
             </div>
             <div>
