@@ -7,9 +7,7 @@ import {
   FileText, 
   Settings, 
   LogOut,
-  Menu,
-  ChevronLeft,
-  ChevronRight
+  Menu
 } from 'lucide-react';
 import { setAuthUser } from '../redux/userSlice'; // Adjust the import path
 import { BASE_URL } from '../main';
@@ -20,13 +18,25 @@ const SideBar = ({ children }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const authUser = useSelector((state) => state.user.authUser);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false); // Sidebar starts closed by default
+  const [isAnimating, setIsAnimating] = useState(false);
+  
+  // Handle animation states
+  const toggleSidebar = () => {
+    setIsAnimating(true);
+    setIsOpen(!isOpen);
+    
+    // Reset animating state after animation completes
+    setTimeout(() => {
+      setIsAnimating(false);
+    }, 300); // Match duration with CSS transition
+  };
   
   // Close drawer when clicking outside on mobile
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (isOpen && !event.target.closest('.sidebar') && !event.target.closest('.sidebar-toggle')) {
-        setIsOpen(false);
+        toggleSidebar();
       }
     };
     
@@ -36,10 +46,10 @@ const SideBar = ({ children }) => {
     };
   }, [isOpen]);
 
-  // Close drawer when route changes on mobile
+  // Close drawer when route changes
   useEffect(() => {
-    if (window.innerWidth < 1024) {
-      setIsOpen(false);
+    if (isOpen && window.innerWidth < 1024) {
+      toggleSidebar();
     }
   }, [location.pathname]);
 
@@ -50,7 +60,7 @@ const SideBar = ({ children }) => {
   const handleLogout = async () => {
     try {
       // Make API call to logout endpoint to clear the cookie
-      await axios.get(`${BASE_URL}/api/v1/user/logout`, {}, { withCredentials: true }); // Adjust the endpoint as needed
+      await axios.get(`${BASE_URL}/api/v1/user/logout`, { withCredentials: true });
       
       // Clear the user from Redux store
       dispatch(setAuthUser(null));
@@ -66,23 +76,24 @@ const SideBar = ({ children }) => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <div className="flex flex-1 relative">
-        {/* Sidebar - fixed on large screens, drawer on mobile */}
+        {/* Sidebar with zero width when closed */}
         <aside 
-          className={`sidebar fixed lg:relative lg:translate-x-0 z-40 h-full lg:h-auto
-            ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
-            transition-transform duration-300 ease-in-out
-            w-64 bg-gradient-to-b from-blue-700 to-blue-800 text-white flex flex-col shadow-xl lg:shadow-md
-            mt-16 lg:mt-0`}
+          className={`sidebar fixed z-40 h-full
+            transition-all duration-300 ease-in-out
+            ${isOpen ? 'w-64' : 'w-0'} 
+            bg-gradient-to-b from-blue-700 to-blue-800 text-white flex flex-col shadow-xl
+            mt-16 overflow-hidden`}
         >
-          {/* Close button (icon) */}
-          <div className="flex justify-end p-4 mt-18">
+          {/* Close button (icon)
+          <div className="flex justify-end p-4">
             <button 
-              onClick={() => setIsOpen(false)}
+              onClick={toggleSidebar}
               className="p-2 text-white hover:bg-blue-600/50 rounded-lg transition-colors"
+              disabled={isAnimating}
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
-          </div>
+          </div> */}
           
           {/* Navigation links - centered */}
           <div className="p-4 flex-grow">
@@ -128,27 +139,34 @@ const SideBar = ({ children }) => {
           </div>
         </aside>
         
-        {/* Backdrop overlay when drawer is open on mobile */}
-        {isOpen && (
-          <div 
-            className="fixed inset-0 bg-black/20 z-30 lg:hidden"
-            onClick={() => setIsOpen(false)}
-          ></div>
-        )}
+        {/* Backdrop overlay when drawer is open */}
+        <div 
+          className={`fixed inset-0 bg-black/20 z-30 transition-opacity duration-300 
+            ${isOpen ? 'opacity-0 visible' : 'opacity-0 invisible'}`}
+          onClick={toggleSidebar}
+        ></div>
         
-        {/* Main content */}
-        <main className="flex-1 lg:ml-0">
-          {/* Toggle button for sidebar */}
-          <div className="fixed top-4 left-4 z-50 lg:absolute">
+        {/* Main content - shifts when sidebar opens */}
+        <main 
+          className={`flex-1 transition-all duration-300 ease-in-out w-full
+            ${isOpen ? 'ml-0 md:ml-0' : 'ml-0'}`}
+        >
+          {/* Toggle button for sidebar - always visible */}
+          <div className="fixed top-20 left-4 z-50">
             <button 
-              onClick={() => setIsOpen(!isOpen)}
-              className="sidebar-toggle p-2 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700"
+              onClick={toggleSidebar}
+              className={`sidebar-toggle p-2 rounded-full ${isOpen ? 'bg-white text-blue-600 hover:bg-blue-300' : 'bg-blue-600 text-white hover:bg-blue-700'}  shadow-lg  focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              disabled={isAnimating}
             >
-              {isOpen ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+              <Menu className="h-5 w-5" />
             </button>
           </div>
           
-          <div className="p-6 mt-12">
+          {/* Content area - shifts when sidebar opens */}
+          <div 
+            className={`p-6 mt-12 transition-all duration-300 ease-in-out
+              ${isOpen ? 'ml-0 md:ml-64' : 'ml-0'}`}
+          >
             {children}
           </div>
         </main>
