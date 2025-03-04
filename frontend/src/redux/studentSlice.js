@@ -1,7 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-  data: null, // Initial state for student data
+  data: null, 
+  userId: null, 
 };
 
 const studentSlice = createSlice({
@@ -9,10 +10,19 @@ const studentSlice = createSlice({
   initialState,
   reducers: {
     setStudentData: (state, action) => {
-      state.data = action.payload; // Store student data from API response
+      // Ensure we only set data if it has an _id
+      if (action.payload && action.payload._id) {
+        state.data = action.payload; 
+        state.userId = action.payload.userId || action.payload._id; 
+      } else {
+        console.error('Invalid student data received:', action.payload);
+        state.data = null;
+        state.userId = null;
+      }
     },
     clearStudentData: (state) => {
-      state.data = null; // Clear student data if needed (e.g., logout)
+      state.data = null; 
+      state.userId = null;
     },
     addStudent: (state, action) => {
       state.data.push(action.payload);
@@ -31,4 +41,4 @@ const studentSlice = createSlice({
 
 export const { setStudentData, clearStudentData, addStudent, updateStudent, deleteStudent } = studentSlice.actions;
 
-export default studentSlice.reducer; // This is the student reducer
+export default studentSlice.reducer; 
