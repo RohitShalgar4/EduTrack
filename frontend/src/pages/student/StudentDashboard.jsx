@@ -1,40 +1,69 @@
 import React, { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { setStudentData } from '../../redux/studentSlice';
+import { setStudentData, clearStudentData } from '../../redux/studentSlice';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line } from 'recharts';
 import { Book, Award, Trophy, Clock, Download } from 'lucide-react';
 import { BASE_URL } from '../../main';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 const StudentDashboard = () => {
-  const student = useSelector((state) => state.student.data); // Access student data from Redux store
+  const student = useSelector((state) => state.student.data);
+  const authUser = useSelector((state) => state.user.authUser);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
-  // Debugging: Log Redux state
-  console.log('StudentDashboard - Redux student data:', student);
-
-  // Fetch student data from the server
   useEffect(() => {
     const fetchStudentData = async () => {
+      if (!authUser?._id) {
+        dispatch(clearStudentData());
+        navigate('/login');
+        return;
+      }
+
       try {
-        axios.defaults.withCredentials = true;
-        const res = await axios.get(`${BASE_URL}/api/v1/student`);
-        console.log('StudentDashboard - API Response:', res.data); // Debugging: Log API response
+        console.log('Fetching data for user ID:', authUser._id);
+        
+        const res = await axios.get(`${BASE_URL}/api/v1/student/${authUser._id}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authUser.token}`
+          },
+          withCredentials: true,
+        });
+
         if (res.data) {
-          dispatch(setStudentData(res.data));
+          // Store the data with the user ID
+          const studentData = {
+            ...res.data,
+            _id: authUser._id // Ensure we use the auth user's ID
+          };
+          console.log('Setting student data:', studentData);
+          dispatch(setStudentData(studentData));
         } else {
-          console.error('StudentDashboard - No data received from the server');
-          toast.error('No data received from the server');
+          console.error('No data received from server');
+          dispatch(clearStudentData());
+          toast.error('No data received from server');
         }
       } catch (error) {
-        console.error('StudentDashboard - Error fetching student data:', error);
-        toast.error('Failed to fetch student data. Please try again.');
+        console.error('Error fetching student data:', error);
+        dispatch(clearStudentData());
+        
+        if (error.response?.status === 401) {
+          navigate('/login');
+          toast.error('Session expired. Please login again.');
+        } else if (error.response?.status === 404) {
+          toast.error('Student data not found. Please contact support.');
+        } else {
+          toast.error('Failed to fetch student data. Please try again.');
+        }
       }
     };
+
     fetchStudentData();
-  }, [dispatch]);
+  }, [authUser, dispatch, navigate]);
 
   const generatePDF = () => {
     if (!student) {
@@ -55,8 +84,10 @@ const StudentDashboard = () => {
     doc.save(`${student.full_name}-progress-report.pdf`);
   };
 
-  if (!student) {
-    return <div>Loading...</div>; // Render loading state until student data is fetched
+  if (!student || !authUser) {
+    return <div className="flex justify-center items-center h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+    </div>;
   }
 
   return (
@@ -123,7 +154,6 @@ const StudentDashboard = () => {
             </LineChart>
           </div>
         </div>
-
       </div>
     </div>
   );
