@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { School, Menu, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { BASE_URL } from '../main';
 import { useSelector } from 'react-redux';
 
 // Custom hook for auth state
@@ -21,24 +19,6 @@ const Navbar = () => {
     const navigate = useNavigate();
     const { isAuthenticated, role, authUser } = useAuthStore();
 
-    useEffect(() => {
-        const fetchUser = async () => {
-            if (!isAuthenticated) return;
-
-            try {
-                const response = await axios.get(`${BASE_URL}/api/v1/student`);
-                console.log('Fetched user data:', response.data);
-            } catch (error) {
-                console.error('Error fetching user:', error);
-                if (error.response?.status === 401) {
-                    navigate('/login');
-                }
-            }
-        };
-
-        fetchUser();
-    }, [isAuthenticated, navigate]);
-
     // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -54,9 +34,21 @@ const Navbar = () => {
         };
     }, [isOpen]);
 
-    const handleLogout = () => {
-        navigate('/login');
-    };
+    const handleLogout = async () => {
+        try {
+          // Make API call to logout endpoint to clear the cookie
+          await axios.get(`${BASE_URL}/api/v1/user/logout`, { withCredentials: true });
+          
+          // Clear the user from Redux store
+          dispatch(setAuthUser(null));
+          
+          // Redirect to login page
+          navigate('/login');
+        } catch (error) {
+          console.error('Logout failed:', error);
+          // Optionally handle the error (e.g., show a message to the user)
+        }
+      };
 
     return (
         <nav className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 fixed top-0 left-0 right-0 z-50">
