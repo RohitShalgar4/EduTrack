@@ -1,13 +1,13 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Login from "./pages/Login";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout from "./components/Layout";
 import LandingPage from "./components/LandingPage";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AddStudent from "./pages/admin/forms/AddStudent";
+// import AdminDashboard from "./pages/admin/AdminDashboard";
+// import AddStudent from "./pages/admin/forms/AddStudent";
 
 function App() {
   console.log("App - Rendering router"); // Debugging: Log when App renders
@@ -15,7 +15,9 @@ function App() {
   return (
     // <Router>
     //   <Routes>
-    //   <Route path="/dashboard" element={<AdminDashboard />} />
+    //     <Route element={<MainLayout />}>
+    //     <Route path="/" element={<AdminDashboard />} />
+    //     </Route>
     //   </Routes>
     // </Router>
     
