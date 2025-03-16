@@ -14,6 +14,10 @@ const userModel = new mongoose.Schema({
         type: String,
         required: true
     },
+    isFirstLogin: {
+        type: Boolean,
+        default: true
+    },
     Mobile_No: {
         type: String,
         required: true
