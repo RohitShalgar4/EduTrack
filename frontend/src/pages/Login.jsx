@@ -44,7 +44,23 @@ const Login = () => {
 
       // Set the auth user with the response data
       dispatch(setAuthUser(res.data));
-      navigate("/dashboard");
+      
+      // Role-based navigation
+      switch (res.data.role) {
+        case 'super_admin':
+          navigate('/admin/dashboard');
+          break;
+        case 'department_admin':
+          navigate('/department-admin/dashboard');
+          break;
+        case 'teacher':
+          navigate('/teacher/dashboard');
+          break;
+        case 'student':
+        default:
+          navigate('/dashboard');
+          break;
+      }
     } catch (error) {
       console.error("Login Error:", error);
       toast.error(error.response?.data?.message || "An error occurred during login");
