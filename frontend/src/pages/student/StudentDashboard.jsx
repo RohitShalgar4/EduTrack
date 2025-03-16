@@ -94,12 +94,12 @@ const StudentDashboard = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Welcome back, {student.full_name}!</h1>
+          <h1 className="text-2xl mt-15 font-bold text-gray-800">Welcome back, {student.full_name}!</h1>
           <p className="text-gray-600">Track your academic progress</p>
         </div>
         <button
           onClick={generatePDF}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="flex items-center gap-2 mt-10 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
         >
           <Download className="w-5 h-5" />
           Download Report
