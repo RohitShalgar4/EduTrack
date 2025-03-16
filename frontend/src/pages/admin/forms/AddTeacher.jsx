@@ -26,15 +26,20 @@ const AddTeacher = () => {
         />
       </div>
       <div>
-        <label htmlFor="subject" className="block text-sm font-medium text-gray-700">
-          Subject
+        <label htmlFor="department" className="block text-sm font-medium text-gray-700">
+          Department
         </label>
-        <input
-          type="text"
-          id="subject"
+        <select
+          id="department"
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          placeholder="Enter subject"
-        />
+        >
+          <option value="">Select department</option>
+          <option value="CSE">CSE</option>
+          <option value="ENTC">ENTC</option>
+          <option value="MECH">MECH</option>
+          <option value="CIVIL">CIVIL</option>
+          <option value="ELE">ELE</option>
+        </select>
       </div>
       <div>
         <label htmlFor="qualification" className="block text-sm font-medium text-gray-700">
@@ -48,14 +53,14 @@ const AddTeacher = () => {
         />
       </div>
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-          Password
+        <label htmlFor="experience" className="block text-sm font-medium text-gray-700">
+          Years of Experience
         </label>
         <input
-          type="password"
-          id="password"
+          type="number"
+          id="experience"
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          placeholder="Enter password"
+          placeholder="Enter years of experience"
         />
       </div>
       <div className="flex justify-end space-x-3 pt-4">

@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const AddStudent = () => {
+  const [gender, setGender] = useState('');
+
   return (
     <form className="space-y-4">
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="full_name" className="block text-sm font-medium text-gray-700">
           Full Name
         </label>
         <input
           type="text"
-          id="name"
+          id="full_name"
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           placeholder="Enter full name"
         />
@@ -26,21 +28,6 @@ const AddStudent = () => {
         />
       </div>
       <div>
-        <label htmlFor="grade" className="block text-sm font-medium text-gray-700">
-          Grade
-        </label>
-        <select
-          id="grade"
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-        >
-          <option value="">Select grade</option>
-          <option value="9">9th Grade</option>
-          <option value="10">10th Grade</option>
-          <option value="11">11th Grade</option>
-          <option value="12">12th Grade</option>
-        </select>
-      </div>
-      <div>
         <label htmlFor="password" className="block text-sm font-medium text-gray-700">
           Password
         </label>
@@ -51,7 +38,78 @@ const AddStudent = () => {
           placeholder="Enter password"
         />
       </div>
-      <div className="flex justify-end space-x-3 pt-4">
+      <div>
+        <label htmlFor="mobile_no" className="block text-sm font-medium text-gray-700">
+          Mobile Number
+        </label>
+        <input
+          type="text"
+          id="mobile_no"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          placeholder="Enter mobile number"
+        />
+      </div>
+      <div>
+        <label htmlFor="parent_no" className="block text-sm font-medium text-gray-700">
+          Parent's Mobile Number
+        </label>
+        <input
+          type="text"
+          id="parent_no"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          placeholder="Enter parent's mobile number"
+        />
+      </div>
+      <div>
+        <label htmlFor="registration_number" className="block text-sm font-medium text-gray-700">
+          Registration Number
+        </label>
+        <input
+          type="text"
+          id="registration_number"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          placeholder="Enter registration number"
+        />
+      </div>
+      <div>
+        <label htmlFor="department" className="block text-sm font-medium text-gray-700">
+          Department
+        </label>
+        <input
+          type="text"
+          id="department"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          placeholder="Enter department"
+        />
+      </div>
+      <div>
+        <label htmlFor="class" className="block text-sm font-medium text-gray-700">
+          Class
+        </label>
+        <input
+          type="text"
+          id="class"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          placeholder="Enter class"
+        />
+      </div>
+      <div>
+        <label htmlFor="gender" className="block text-sm font-medium text-gray-700">
+          Gender
+        </label>
+        <select
+          id="gender"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          value={gender}
+          onChange={(e) => setGender(e.target.value)}
+        >
+          <option value="">Select Gender</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div className="flex justify-end pt-4">
         <button
           type="submit"
           className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
