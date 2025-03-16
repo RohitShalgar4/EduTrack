@@ -95,6 +95,7 @@ export const login = async (req, res) => {
             username: user.username,
             fullName: user.fullName,
             profilePhoto: user.profilePhoto,
+            isFirstLogin: user.isFirstLogin,
             message: "Logged in successfully.",
             success: true,
             role: user.role || "student"
@@ -113,3 +114,44 @@ export const logout = (req, res) => {
         console.log(error);
     }
 }
+
+export const updatePassword = async (req, res) => {
+    try {
+        const { newPassword, confirmPassword } = req.body;
+        const userId = req.id; // From authentication middleware
+
+        if (!newPassword || !confirmPassword) {
+            return res.status(400).json({ message: "All fields are required" });
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ message: "Passwords do not match" });
+        }
+
+        // Hash the new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update user's password and isFirstLogin status
+        const user = await User.findByIdAndUpdate(
+            userId,
+            {
+                password: hashedPassword,
+                isFirstLogin: false
+            },
+            { new: true }
+        ).select('-password'); // Exclude password from the response
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        return res.status(200).json({
+            message: "Password updated successfully",
+            success: true,
+            user: user // Send back the updated user data
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
