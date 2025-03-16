@@ -1,6 +1,8 @@
 import { User } from "../models/userModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { Admin } from "../models/adminModel.js";
+import { Teacher } from "../models/teacherModel.js";
 
 export const register = async (req, res) => {
     try {
@@ -70,41 +72,72 @@ export const login = async (req, res) => {
         if (!email || !password) {
             return res.status(400).json({ message: "All fields are required" });
         };
-        const user = await User.findOne({ email });
+        
+        // Check in User model first
+        let user = await User.findOne({ email });
+        let role = "student";
+        let isAdmin = false;
+        
+        // If not found in User model, check in Admin model
+        if (!user) {
+            const admin = await Admin.findOne({ email });
+            if (admin) {
+                user = admin;
+                role = admin.role; // super_admin or department_admin
+                isAdmin = true;
+            } else {
+                // If not found in Admin model, check in Teacher model
+                const teacher = await Teacher.findOne({ email });
+                if (teacher) {
+                    user = teacher;
+                    role = "teacher";
+                }
+            }
+        }
+        
+        // If user not found in any model
         if (!user) {
             return res.status(400).json({
                 message: "Incorrect username or password",
                 success: false
-            })
-        };
+            });
+        }
+        
+        // Verify password
         const isPasswordMatch = await bcrypt.compare(password, user.password);
         if (!isPasswordMatch) {
             return res.status(400).json({
                 message: "Incorrect username or password",
                 success: false
-            })
-        };
+            });
+        }
+        
+        // Create token
         const tokenData = {
-            userId: user._id
+            userId: user._id,
+            role: role
         };
 
         const token = await jwt.sign(tokenData, process.env.SECRET_KEY, { expiresIn: '1d' });
 
+        // Return response with appropriate user data
         return res.status(200).cookie("token", token, { maxAge: 1 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: 'strict' }).json({
             _id: user._id,
-            username: user.username,
-            fullName: user.fullName,
-            profilePhoto: user.profilePhoto,
+            email: user.email,
+            fullName: user.full_name,
+            profilePhoto: user.photo_url,
             isFirstLogin: user.isFirstLogin,
+            role: role,
             message: "Logged in successfully.",
-            success: true,
-            role: user.role || "student"
+            success: true
         });
         
     } catch (error) {
         console.log(error);
+        return res.status(500).json({ message: "Server error" });
     }
 }
+
 export const logout = (req, res) => {
     try {
         return res.status(200).cookie("token", "", { maxAge: 0 }).json({
@@ -119,6 +152,7 @@ export const updatePassword = async (req, res) => {
     try {
         const { newPassword, confirmPassword } = req.body;
         const userId = req.id; // From authentication middleware
+        const userRole = req.role; // From authentication middleware
 
         if (!newPassword || !confirmPassword) {
             return res.status(400).json({ message: "All fields are required" });
@@ -131,15 +165,37 @@ export const updatePassword = async (req, res) => {
         // Hash the new password
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-        // Update user's password and isFirstLogin status
-        const user = await User.findByIdAndUpdate(
-            userId,
-            {
-                password: hashedPassword,
-                isFirstLogin: false
-            },
-            { new: true }
-        ).select('-password'); // Exclude password from the response
+        let user;
+        // Check user type based on role and update accordingly
+        if (userRole === 'super_admin' || userRole === 'department_admin') {
+            user = await Admin.findByIdAndUpdate(
+                userId,
+                {
+                    password: hashedPassword,
+                    isFirstLogin: false
+                },
+                { new: true }
+            ).select('-password');
+        } else if (userRole === 'teacher') {
+            user = await Teacher.findByIdAndUpdate(
+                userId,
+                {
+                    password: hashedPassword,
+                    isFirstLogin: false
+                },
+                { new: true }
+            ).select('-password');
+        } else {
+            // Default to User model (student)
+            user = await User.findByIdAndUpdate(
+                userId,
+                {
+                    password: hashedPassword,
+                    isFirstLogin: false
+                },
+                { new: true }
+            ).select('-password');
+        }
 
         if (!user) {
             return res.status(404).json({ message: "User not found" });
@@ -148,7 +204,10 @@ export const updatePassword = async (req, res) => {
         return res.status(200).json({
             message: "Password updated successfully",
             success: true,
-            user: user // Send back the updated user data
+            user: {
+                ...user.toObject(),
+                role: userRole
+            }
         });
     } catch (error) {
         console.log(error);
