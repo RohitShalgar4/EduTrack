@@ -13,6 +13,7 @@ const isAuthenticated = async(req, res, next) => {
         }
 
         req.id = decoded.userId;
+        req.role = decoded.role || "student";
         next();
     } catch (error) {
         console.error('Authentication error:', error);
