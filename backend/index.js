@@ -5,6 +5,8 @@ import userRoute from "./routes/userRoute.js";
 import studentRoute from './routes/studentRoute.js';
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import teacherRoute from './routes/teacherRoute.js';
+import adminRoute from './routes/adminRoute.js';
 
 dotenv.config({});
 connectDB();
@@ -35,6 +37,8 @@ app.use(
 
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/student", studentRoute);
+app.use("/api/v1/teacher", teacherRoute);
+app.use("/api/v1/admin", adminRoute);
 
 app.listen(PORT, () => {
   console.log(`Server listen at port ${PORT}`);
