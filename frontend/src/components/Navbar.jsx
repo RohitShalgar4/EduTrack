@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { School, Menu, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { logoutUser } from '../redux/userSlice';
+import axios from 'axios';
+import { BASE_URL } from '../main';
+import { toast } from 'react-hot-toast';
 
 // Custom hook for auth state
 export const useAuthStore = () => {
@@ -16,6 +20,7 @@ export const useAuthStore = () => {
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
+    const dispatch = useDispatch();
     const navigate = useNavigate();
     const { isAuthenticated, role, authUser } = useAuthStore();
 
@@ -36,19 +41,24 @@ const Navbar = () => {
 
     const handleLogout = async () => {
         try {
-          // Make API call to logout endpoint to clear the cookie
-          await axios.get(`${BASE_URL}/api/v1/user/logout`, { withCredentials: true });
-          
-          // Clear the user from Redux store
-          dispatch(setAuthUser(null));
-          
-          // Redirect to login page
-          navigate('/login');
+            // Clear the cookie by making request to backend
+            await axios.get(`${BASE_URL}/api/v1/user/logout`, { 
+                withCredentials: true 
+            });
+            
+            // Clear Redux state
+            dispatch(logoutUser());
+            
+            // Clear any persisted data from localStorage
+            localStorage.clear();
+            
+            // Navigate to login page
+            navigate('/login');
         } catch (error) {
-          console.error('Logout failed:', error);
-          // Optionally handle the error (e.g., show a message to the user)
+            console.error('Logout failed:', error);
+            toast.error('Logout failed. Please try again.');
         }
-      };
+    };
 
     return (
         <nav className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 fixed top-0 left-0 right-0 z-50">

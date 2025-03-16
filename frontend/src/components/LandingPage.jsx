@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { ChevronRight, Menu, X, BookOpen, UserCheck, Award, BarChart3, FileText, Lock, Users, UserCog, GraduationCap, Mail, PhoneCall, MapPin, CheckCircle2 } from 'lucide-react';
 import Navbar from './Navbar';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
 const LandingPage = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
+  const authUser = useSelector((state) => state.user.authUser);
 
   const features = [
     {
@@ -59,6 +62,16 @@ const LandingPage = () => {
     "Quick report generation"
   ];
 
+  const handleGetStarted = () => {
+    if (authUser) {
+      // User is authenticated, navigate to dashboard
+      navigate('/dashboard');
+    } else {
+      // User is not authenticated, navigate to login
+      navigate('/login');
+    }
+  };
+
   return (
     <div className="bg-white">
       {/* Navigation */}
@@ -80,13 +93,13 @@ const LandingPage = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-              <Link
-                to="/login"
+              <button
+                onClick={handleGetStarted}
                 className="w-full sm:w-auto bg-gradient-to-r from-blue-600 via-blue-700 to-blue-900 text-white px-8 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 hover:shadow-blue-700/30 hover:scale-105"
               >
                 Get Started
                 <ChevronRight size={18} />
-              </Link>
+              </button>
 
               {/* External Navigation to a Website */}
               <a

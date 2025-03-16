@@ -9,9 +9,10 @@ import {
   LogOut,
   Menu
 } from 'lucide-react';
-import { setAuthUser } from '../redux/userSlice'; // Adjust the import path
+import { setAuthUser, logoutUser } from '../redux/userSlice'; // Adjust the import path
 import { BASE_URL } from '../main';
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
 const SideBar = ({ children }) => {
   const location = useLocation();
@@ -59,17 +60,22 @@ const SideBar = ({ children }) => {
 
   const handleLogout = async () => {
     try {
-      // Make API call to logout endpoint to clear the cookie
-      await axios.get(`${BASE_URL}/api/v1/user/logout`, { withCredentials: true });
+      // Clear the cookie by making request to backend
+      await axios.get(`${BASE_URL}/api/v1/user/logout`, { 
+        withCredentials: true 
+      });
       
-      // Clear the user from Redux store
-      dispatch(setAuthUser(null));
+      // Clear Redux state
+      dispatch(logoutUser());
       
-      // Redirect to login page
+      // Clear any persisted data from localStorage
+      localStorage.clear();
+      
+      // Navigate to login page
       navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error);
-      // Optionally handle the error (e.g., show a message to the user)
+      toast.error('Logout failed. Please try again.');
     }
   };
 
