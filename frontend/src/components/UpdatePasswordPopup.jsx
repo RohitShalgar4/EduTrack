@@ -2,7 +2,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setAuthUser } from '../redux/userSlice';
 import { BASE_URL } from '../main';
 
@@ -14,6 +14,7 @@ const UpdatePasswordPopup = ({ onClose }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const dispatch = useDispatch();
+    const { role } = useSelector(state => state.user.authUser);
 
     const handleChange = (e) => {
         setFormData({
@@ -47,14 +48,45 @@ const UpdatePasswordPopup = ({ onClose }) => {
         setLoading(true);
 
         try {
-            console.log('Sending password update request...');
-            const response = await axios.post(
-                `${BASE_URL}/api/v1/user/update-password`,
-                formData,
-                { withCredentials: true }
-            );
+            console.log('Starting password update process...');
+            // Determine the endpoint based on user role
+            let endpoint = '/api/v1/user/update-password';
+            let method = 'post';
 
-            console.log('Password update response:', response.data);
+            if (role === 'teacher') {
+                endpoint = '/api/v1/teacher/update-password';
+                method = 'post';
+            } else if (role === 'super_admin' || role === 'department_admin') {
+                endpoint = '/api/v1/admin/update-password';
+                method = 'post';
+            }
+
+            console.log('Using endpoint:', endpoint);
+            console.log('Request method:', method);
+            console.log('User role:', role);
+
+            const config = {
+                method: method,
+                url: `${BASE_URL}${endpoint}`,
+                data: { newPassword: formData.newPassword },
+                withCredentials: true,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            };
+
+            console.log('Sending request with config:', {
+                ...config,
+                data: '***REDACTED***' // Don't log the actual password
+            });
+
+            const response = await axios(config);
+
+            console.log('Password update response:', {
+                status: response.status,
+                success: response.data.success,
+                message: response.data.message
+            });
 
             if (response.data.success) {
                 // Update the Redux store with the updated user data
@@ -66,9 +98,15 @@ const UpdatePasswordPopup = ({ onClose }) => {
                 onClose();
             } else {
                 setError(response.data.message || 'Failed to update password');
+                toast.error(response.data.message || 'Failed to update password');
             }
         } catch (error) {
-            console.error('Password update error:', error);
+            console.error('Password update error details:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                message: error.response?.data?.message,
+                error: error.message
+            });
             setError(error.response?.data?.message || 'Error updating password');
             toast.error(error.response?.data?.message || 'Error updating password');
         } finally {
