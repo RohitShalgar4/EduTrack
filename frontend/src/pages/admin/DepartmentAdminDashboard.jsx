@@ -3,6 +3,7 @@ import { Users, BookOpen, UserCog, BarChart3, UserPlus, Search } from 'lucide-re
 import AddStudent from './forms/AddStudent';
 import AddTeacher from './forms/AddTeacher';
 import PropTypes from 'prop-types';
+import { useSelector } from 'react-redux';
 
 const ActivityItem = ({ title, description, time }) => {
   return (
@@ -24,14 +25,43 @@ const DepartmentAdminDashboard = () => {
   const [openModal, setOpenModal] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState('student');
-  const [departmentFilter, setDepartmentFilter] = useState('Computer Science'); // Default department
+  
+  // Get the authenticated user's data from Redux
+  const authUser = useSelector((state) => state.user.authUser);
+  
+  console.log("Auth User Full Data:", authUser); // Debug log
+  
+  // Department mapping
+  const departmentFullNames = {
+    'CSE': 'Computer Science and Engineering',
+    'ENTC': 'Electronics and Telecommunication Engineering',
+    'MECH': 'Mechanical Engineering',
+    'CIVIL': 'Civil Engineering',
+    'ELE': 'Electrical Engineering'
+  };
 
-  // Mock data for demonstration
+  // Get the full department name
+  const getDepartmentFullName = (dept) => {
+    console.log("Getting department name for:", dept); // Debug log
+    if (!dept) {
+      console.log("No department provided"); // Debug log
+      return 'Loading...';
+    }
+    const upperDept = dept.toUpperCase();
+    const fullName = departmentFullNames[upperDept];
+    console.log("Mapped to full name:", fullName); // Debug log
+    return fullName || `${dept} Department`;
+  };
+
+  const departmentName = getDepartmentFullName(authUser?.department);
+  console.log("Final Department Name:", departmentName); // Debug log
+
+  // Mock data for demonstration - filtered by department
   const mockResults = [
-    { id: 1, name: 'John Doe', email: 'john.doe@example.com', type: 'student', details: 'Grade 10 - Computer Science' },
-    { id: 2, name: 'Jane Smith', email: 'jane.smith@example.com', type: 'student', details: 'Grade 11 - Computer Science' },
-    { id: 3, name: 'Dr. Sarah Johnson', email: 'sarah.j@example.com', type: 'teacher', details: 'Computer Science Department' },
-    { id: 4, name: 'Prof. David Wilson', email: 'david.w@example.com', type: 'teacher', details: 'Computer Science Department' },
+    { id: 1, name: 'John Doe', email: 'john.doe@example.com', type: 'student', details: `Grade 10 - ${departmentName}` },
+    { id: 2, name: 'Jane Smith', email: 'jane.smith@example.com', type: 'student', details: `Grade 11 - ${departmentName}` },
+    { id: 3, name: 'Dr. Sarah Johnson', email: 'sarah.j@example.com', type: 'teacher', details: `${departmentName} Department` },
+    { id: 4, name: 'Prof. David Wilson', email: 'david.w@example.com', type: 'teacher', details: `${departmentName} Department` },
   ];
 
   const filteredResults = mockResults.filter(
@@ -53,27 +83,10 @@ const DepartmentAdminDashboard = () => {
 
   return (
     <div className="w-full h-full overflow-auto py-6 px-4">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-9xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Welcome back, Department Admin!</h1>
-          <p className="text-gray-600 mt-2">Manage your department: {departmentFilter}</p>
-        </div>
-
-        <div className="mb-6">
-          <label htmlFor="departmentFilter" className="block text-sm font-medium text-gray-700 mb-2">
-            Department
-          </label>
-          <select
-            id="departmentFilter"
-            value={departmentFilter}
-            onChange={(e) => setDepartmentFilter(e.target.value)}
-            className="block w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="Computer Science">Computer Science</option>
-            <option value="Electrical Engineering">Electrical Engineering</option>
-            <option value="Mechanical Engineering">Mechanical Engineering</option>
-            <option value="Civil Engineering">Civil Engineering</option>
-          </select>
+          <h1 className="text-3xl font-bold mt-8 text-gray-800">Welcome back, Department Admin!</h1>
+          <p className="text-gray-600 mt-2">Managing: {departmentName}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -122,9 +135,7 @@ const DepartmentAdminDashboard = () => {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder={`Search ${searchType}s by name, email, or ${
-                    searchType === 'student' ? 'grade' : 'department'
-                  }...`}
+                  placeholder={`Search ${searchType}s by name or email...`}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -200,7 +211,7 @@ const DepartmentAdminDashboard = () => {
             <div className="space-y-4">
               <ActivityItem
                 title="New Student Registered"
-                description="John Doe has registered as a new student in Computer Science"
+                description={`John Doe has registered as a new student in ${departmentName}`}
                 time="2 hours ago"
               />
               <ActivityItem
@@ -210,7 +221,7 @@ const DepartmentAdminDashboard = () => {
               />
               <ActivityItem
                 title="Teacher Added"
-                description="Sarah Johnson has been added as a Computer Science teacher"
+                description={`Sarah Johnson has been added as a ${departmentName} teacher`}
                 time="Yesterday"
               />
               <ActivityItem
@@ -239,8 +250,8 @@ const DepartmentAdminDashboard = () => {
               </button>
             </div>
             <div>
-              {openModal === 'student' && <AddStudent onClose={closeModal} departmentFilter={departmentFilter} />}
-              {openModal === 'teacher' && <AddTeacher onClose={closeModal} departmentFilter={departmentFilter} />}
+              {openModal === 'student' && <AddStudent onClose={closeModal} department={authUser?.department} />}
+              {openModal === 'teacher' && <AddTeacher onClose={closeModal} department={authUser?.department} />}
             </div>
           </div>
         </div>
