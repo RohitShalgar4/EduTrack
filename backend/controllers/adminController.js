@@ -119,4 +119,34 @@ export const deleteAdmin = async (req, res) => {
         console.error(error);
         return res.status(500).json({ message: "Server error" });
     }
+};
+
+// Update admin password
+export const updateAdminPassword = async (req, res) => {
+    try {
+        const adminId = req.id;
+        const { newPassword } = req.body;
+
+        // Find admin
+        const admin = await Admin.findById(adminId);
+        if (!admin) {
+            return res.status(404).json({ message: "Admin not found" });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password
+        admin.password = hashedPassword;
+        admin.isFirstLogin = false;
+        await admin.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Password updated successfully"
+        });
+    } catch (error) {
+        console.error('Error in updateAdminPassword:', error);
+        return res.status(500).json({ message: "Server error" });
+    }
 }; 
