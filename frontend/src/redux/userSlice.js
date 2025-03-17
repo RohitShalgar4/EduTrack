@@ -10,17 +10,11 @@ const userSlice = createSlice({
   initialState,
   reducers: {
     setAuthUser: (state, action) => {
-      console.log("Redux - setAuthUser Raw Payload:", action.payload); // Debug log
-      
-      // Ensure we have all required fields
-      const userData = {
+      console.log('Setting auth user:', action.payload);
+      state.authUser = {
         ...action.payload,
-        role: action.payload.role || "student",
-        department: action.payload.department || null,
+        role: action.payload.role || 'student'
       };
-      
-      console.log("Redux - Processed User Data:", userData); // Debug log
-      state.authUser = userData;
     },
     logoutUser: (state) => {
       state.authUser = null;
