@@ -77,20 +77,24 @@ export const login = async (req, res) => {
         let user = await User.findOne({ email });
         let role = "student";
         let isAdmin = false;
+        let department = null;
         
         // If not found in User model, check in Admin model
         if (!user) {
-            const admin = await Admin.findOne({ email });
+            const admin = await Admin.findOne({ email }).lean();  // Use lean() to get plain object
             if (admin) {
                 user = admin;
-                role = admin.role; // super_admin or department_admin
+                role = admin.role;
+                department = admin.department;
                 isAdmin = true;
+                console.log("Found admin:", admin); // Debug log
             } else {
                 // If not found in Admin model, check in Teacher model
-                const teacher = await Teacher.findOne({ email });
+                const teacher = await Teacher.findOne({ email }).lean();
                 if (teacher) {
                     user = teacher;
                     role = "teacher";
+                    department = teacher.department;
                 }
             }
         }
@@ -115,22 +119,34 @@ export const login = async (req, res) => {
         // Create token
         const tokenData = {
             userId: user._id,
-            role: role
+            role: role,
+            department: department
         };
 
         const token = await jwt.sign(tokenData, process.env.SECRET_KEY, { expiresIn: '1d' });
 
         // Return response with appropriate user data
-        return res.status(200).cookie("token", token, { maxAge: 1 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: 'strict' }).json({
+        const responseData = {
             _id: user._id,
             email: user.email,
             fullName: user.full_name,
             profilePhoto: user.photo_url,
             isFirstLogin: user.isFirstLogin,
             role: role,
+            department: department, // Use the extracted department
             message: "Logged in successfully.",
             success: true
-        });
+        };
+
+        console.log("Login Response Data:", responseData); // Debug log
+
+        return res.status(200)
+            .cookie("token", token, { 
+                maxAge: 1 * 24 * 60 * 60 * 1000, 
+                httpOnly: true, 
+                sameSite: 'strict' 
+            })
+            .json(responseData);
         
     } catch (error) {
         console.log(error);
