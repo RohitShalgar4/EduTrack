@@ -9,7 +9,6 @@ import teacherRoute from './routes/teacherRoute.js';
 import adminRoute from './routes/adminRoute.js';
 
 dotenv.config({});
-connectDB();
 
 const app = express();
 
@@ -23,23 +22,24 @@ app.use(
     cors({
         origin: (origin, callback) => {
             if (!origin || allowedOrigins.includes(origin)) {
-                callback(null, true); // Allow the request
+                callback(null, true);
             } else {
-                callback(new Error('Not allowed by CORS')); // Block the request
+                callback(new Error('Not allowed by CORS'));
             }
         },
-        methods: ['GET', 'POST', 'PUT', 'DELETE'], // Specify allowed methods
-        credentials: true, // Allow cookies and auth headers
+        methods: ['GET', 'POST', 'PUT', 'DELETE'],
+        credentials: true,
     })
 );
 
 // Routes
-
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/student", studentRoute);
 app.use("/api/v1/teacher", teacherRoute);
 app.use("/api/v1/admin", adminRoute);
 
-app.listen(PORT, () => {
-  console.log(`Server listen at port ${PORT}`);
+connectDB().then(() => {
+    app.listen(PORT, () => {
+        console.log(`Server listening at port ${PORT}`);
+    });
 });
