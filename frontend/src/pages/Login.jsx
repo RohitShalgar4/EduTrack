@@ -1,6 +1,6 @@
 // Login.js
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { useDispatch } from 'react-redux';
@@ -45,6 +45,12 @@ const Login = () => {
       // Set the auth user with the response data
       dispatch(setAuthUser(res.data));
       
+      // If it's first login, redirect to password update
+      if (res.data.isFirstLogin) {
+        navigate('/update-password');
+        return;
+      }
+      
       // Role-based navigation
       switch (res.data.role) {
         case 'super_admin':
@@ -58,9 +64,11 @@ const Login = () => {
           break;
         case 'student':
         default:
-          navigate('/dashboard');
+          navigate('/student/dashboard');
           break;
       }
+
+      toast.success('Logged in successfully');
     } catch (error) {
       console.error("Login Error:", error);
       toast.error(error.response?.data?.message || "An error occurred during login");
