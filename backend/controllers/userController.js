@@ -71,7 +71,7 @@ export const login = async (req, res) => {
         const { email, password } = req.body;
         if (!email || !password) {
             return res.status(400).json({ message: "All fields are required" });
-        };
+        }
         
         // Check in User model first
         let user = await User.findOne({ email });
@@ -81,13 +81,13 @@ export const login = async (req, res) => {
         
         // If not found in User model, check in Admin model
         if (!user) {
-            const admin = await Admin.findOne({ email }).lean();  // Use lean() to get plain object
+            const admin = await Admin.findOne({ email }).lean();
             if (admin) {
                 user = admin;
                 role = admin.role;
                 department = admin.department;
                 isAdmin = true;
-                console.log("Found admin:", admin); // Debug log
+                console.log("Found admin:", admin);
             } else {
                 // If not found in Admin model, check in Teacher model
                 const teacher = await Teacher.findOne({ email }).lean();
@@ -95,6 +95,7 @@ export const login = async (req, res) => {
                     user = teacher;
                     role = "teacher";
                     department = teacher.department;
+                    console.log("Found teacher:", teacher); // Debug log
                 }
             }
         }
@@ -133,7 +134,7 @@ export const login = async (req, res) => {
             profilePhoto: user.photo_url,
             isFirstLogin: user.isFirstLogin,
             role: role,
-            department: department, // Use the extracted department
+            department: department,
             message: "Logged in successfully.",
             success: true
         };
@@ -149,10 +150,10 @@ export const login = async (req, res) => {
             .json(responseData);
         
     } catch (error) {
-        console.log(error);
+        console.error("Login error:", error);
         return res.status(500).json({ message: "Server error" });
     }
-}
+};
 
 export const logout = (req, res) => {
     try {
@@ -166,16 +167,12 @@ export const logout = (req, res) => {
 
 export const updatePassword = async (req, res) => {
     try {
-        const { newPassword, confirmPassword } = req.body;
+        const { newPassword } = req.body;
         const userId = req.id; // From authentication middleware
         const userRole = req.role; // From authentication middleware
 
-        if (!newPassword || !confirmPassword) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
-
-        if (newPassword !== confirmPassword) {
-            return res.status(400).json({ message: "Passwords do not match" });
+        if (!newPassword) {
+            return res.status(400).json({ message: "New password is required" });
         }
 
         // Hash the new password
@@ -226,7 +223,7 @@ export const updatePassword = async (req, res) => {
             }
         });
     } catch (error) {
-        console.log(error);
+        console.error('Error in updatePassword:', error);
         return res.status(500).json({ message: "Server error" });
     }
 };
