@@ -1,5 +1,6 @@
 import { Teacher } from "../models/teacherModel.js";
 import bcrypt from "bcryptjs";
+import { User } from "../models/userModel.js";
 
 export const addTeacher = async (req, res) => {
     try {
@@ -104,6 +105,154 @@ export const deleteTeacher = async (req, res) => {
         return res.status(200).json({ message: "Teacher deleted successfully" });
     } catch (error) {
         console.error(error);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
+// Get all students for a teacher
+export const getTeacherStudents = async (req, res) => {
+    try {
+        const teacherId = req.id;
+        
+        // Get teacher's department
+        const teacher = await Teacher.findById(teacherId);
+        if (!teacher) {
+            return res.status(404).json({ message: "Teacher not found" });
+        }
+
+        // Get all students from the same department
+        const students = await User.find({ Department: teacher.department })
+            .select('-password')
+            .sort({ full_name: 1 });
+
+        return res.status(200).json({
+            success: true,
+            students
+        });
+    } catch (error) {
+        console.error('Error in getTeacherStudents:', error);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
+// Get specific student details
+export const getStudentDetails = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const teacherId = req.id;
+
+        // Get teacher's department
+        const teacher = await Teacher.findById(teacherId);
+        if (!teacher) {
+            return res.status(404).json({ message: "Teacher not found" });
+        }
+
+        // Get student details
+        const student = await User.findById(studentId).select('-password');
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        // Verify student is from teacher's department
+        if (student.Department !== teacher.department) {
+            return res.status(403).json({ message: "Access denied. Student not in your department" });
+        }
+
+        return res.status(200).json({
+            success: true,
+            student
+        });
+    } catch (error) {
+        console.error('Error in getStudentDetails:', error);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
+// Update student details
+export const updateStudentDetails = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const teacherId = req.id;
+        const updateData = req.body;
+
+        // Get teacher's department
+        const teacher = await Teacher.findById(teacherId);
+        if (!teacher) {
+            return res.status(404).json({ message: "Teacher not found" });
+        }
+
+        // Get student
+        const student = await User.findById(studentId);
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        // Verify student is from teacher's department
+        if (student.Department !== teacher.department) {
+            return res.status(403).json({ message: "Access denied. Student not in your department" });
+        }
+
+        // Only allow updating specific fields
+        const allowedFields = [
+            'Mobile_No',
+            'Parent_No',
+            'previous_cgpa',
+            'previous_percentages',
+            'class_rank',
+            'attendance'
+        ];
+
+        const filteredUpdateData = Object.keys(updateData)
+            .filter(key => allowedFields.includes(key))
+            .reduce((obj, key) => {
+                obj[key] = updateData[key];
+                return obj;
+            }, {});
+
+        // Update student
+        const updatedStudent = await User.findByIdAndUpdate(
+            studentId,
+            filteredUpdateData,
+            { new: true }
+        ).select('-password');
+
+        return res.status(200).json({
+            success: true,
+            message: "Student details updated successfully",
+            student: updatedStudent
+        });
+    } catch (error) {
+        console.error('Error in updateStudentDetails:', error);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
+// Update teacher password
+export const updateTeacherPassword = async (req, res) => {
+    try {
+        const teacherId = req.id;
+        const { newPassword } = req.body;
+
+        // Find teacher
+        const teacher = await Teacher.findById(teacherId);
+        if (!teacher) {
+            return res.status(404).json({ message: "Teacher not found" });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password
+        teacher.password = hashedPassword;
+        teacher.isFirstLogin = false;
+        await teacher.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Password updated successfully"
+        });
+    } catch (error) {
+        console.error('Error in updateTeacherPassword:', error);
         return res.status(500).json({ message: "Server error" });
     }
 }; 
