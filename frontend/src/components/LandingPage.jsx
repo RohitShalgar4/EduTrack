@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
-import { ChevronRight, Menu, X, BookOpen, UserCheck, Award, BarChart3, FileText, Lock, Users, UserCog, GraduationCap, Mail, PhoneCall, MapPin, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, BookOpen, UserCheck, BarChart3, Users, UserCog, GraduationCap, Mail, PhoneCall, MapPin, CheckCircle2 } from 'lucide-react';
 import Navbar from './Navbar';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
 const LandingPage = () => {
-  const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const authUser = useSelector((state) => state.user.authUser);
 
@@ -64,8 +62,17 @@ const LandingPage = () => {
 
   const handleGetStarted = () => {
     if (authUser) {
-      // User is authenticated, navigate to dashboard
-      navigate('/dashboard');
+      // User is authenticated, navigate based on role
+      if (authUser.role === 'super_admin') {
+        navigate('/admin/dashboard');
+      } else if (authUser.role === 'department_admin') {
+        navigate('/department-admin/dashboard');
+      } else if (authUser.role === 'teacher') {
+        navigate('/teacher/dashboard');
+      } else {
+        // Regular student user
+        navigate('/dashboard');
+      }
     } else {
       // User is not authenticated, navigate to login
       navigate('/login');
