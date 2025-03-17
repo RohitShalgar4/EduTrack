@@ -22,7 +22,7 @@ ActivityItem.propTypes = {
   time: PropTypes.string.isRequired
 };
 
-const AdminDashboard = () => {
+const SuperAdminDashboard = () => {
   const [openModal, setOpenModal] = useState(null); // State to track which modal is open
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState('student');
@@ -55,7 +55,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="w-full h-full overflow-auto py-6 px-4">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-9xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl mt-8 font-bold text-gray-800">Welcome back, Admin!</h1>
           <p className="text-gray-600 mt-2">Track your academic progress and manage your institution</p>
@@ -268,4 +268,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default SuperAdminDashboard;
