@@ -20,18 +20,31 @@ const isAuthenticated = async(req, res, next) => {
 
         console.log('Token verified. User details:', {
             userId: decoded.userId,
-            role: decoded.role || "student"
+            role: decoded.role,
+            department: decoded.department
         });
 
+        // Set user details in request object
         req.id = decoded.userId;
         req.role = decoded.role;
+        req.department = decoded.department;
 
         if (!req.role) {
-            console.log('No role found in token, defaulting to student');
-            req.role = "student";
+            console.log('No role found in token');
+            return res.status(401).json({ message: "Invalid token - no role found" });
         }
 
-        console.log('Authentication successful. Role:', req.role);
+        // For department admins, ensure they have a department
+        if (req.role === 'department_admin' && !req.department) {
+            console.log('Department admin without department');
+            return res.status(401).json({ message: "Invalid token - department admin without department" });
+        }
+
+        console.log('Authentication successful:', {
+            role: req.role,
+            department: req.department
+        });
+        
         next();
     } catch (error) {
         console.error('Authentication error:', error);
