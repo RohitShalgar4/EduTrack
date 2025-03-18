@@ -34,19 +34,28 @@ export const getStudentData = async (req, res) => {
 
     // Map the response to match the frontend's expected structure
     const studentData = {
-      _id: student._id, // Include the user ID in the response
+      _id: student._id,
       full_name: student.full_name,
       registration_number: student.registration_number,
+      Department: student.Department,
+      current_semester: student.current_semester,
+      Mobile_No: student.Mobile_No,
+      Parent_No: student.Parent_No,
+      address: student.address,
+      gender: student.gender,
       cgpa: currentCgpa,
       sgpa: currentSgpa,
-      current_semester: student.current_semester,
       class_rank: student.class_rank,
       attendance: averageAttendance,
+      previous_cgpa: student.previous_cgpa,
+      previous_percentages: student.previous_percentages,
       attendanceData: student.attendance,
       semesterProgress: student.semesterProgress,
+      achievements: student.achievements,
+      photo_url: student.photo_url
     };
 
-    console.log('Sending student data with ID:', studentData._id);
+    console.log('Sending student data:', studentData);
     res.status(200).json(studentData);
   } catch (error) {
     console.error('Error fetching student data:', error);
