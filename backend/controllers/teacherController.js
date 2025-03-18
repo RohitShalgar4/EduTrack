@@ -113,25 +113,73 @@ export const deleteTeacher = async (req, res) => {
 export const getTeacherStudents = async (req, res) => {
     try {
         const teacherId = req.id;
+        console.log('Fetching students for teacher ID:', teacherId);
         
         // Get teacher's department
         const teacher = await Teacher.findById(teacherId);
         if (!teacher) {
+            console.log('Teacher not found');
             return res.status(404).json({ message: "Teacher not found" });
         }
+
+        console.log('Found teacher:', teacher.full_name, 'Department:', teacher.department);
 
         // Get all students from the same department
         const students = await User.find({ Department: teacher.department })
             .select('-password')
             .sort({ full_name: 1 });
 
+        console.log(`Found ${students.length} students in department ${teacher.department}`);
+
+        // Format student data
+        const formattedStudents = students.map(student => {
+            // Calculate current CGPA (last element of previous_cgpa array)
+            const currentCgpa = student.previous_cgpa.length > 0
+                ? student.previous_cgpa[student.previous_cgpa.length - 1]
+                : 0;
+
+            // Calculate current SGPA (last element of previous_cgpa array)
+            const currentSgpa = student.previous_cgpa.length > 0
+                ? student.previous_cgpa[student.previous_cgpa.length - 1]
+                : 0;
+
+            // Calculate overall attendance percentage
+            const totalAttendance = student.attendance.reduce((sum, entry) => sum + entry.attendance, 0);
+            const averageAttendance = student.attendance.length > 0
+                ? (totalAttendance / student.attendance.length).toFixed(2)
+                : 0;
+
+            return {
+                _id: student._id,
+                full_name: student.full_name,
+                registration_number: student.registration_number,
+                Department: student.Department,
+                class: student.class,
+                current_semester: student.current_semester,
+                cgpa: currentCgpa,
+                sgpa: currentSgpa,
+                class_rank: student.class_rank,
+                attendance: averageAttendance,
+                attendanceData: student.attendance,
+                semesterProgress: student.semesterProgress,
+                Mobile_No: student.Mobile_No,
+                Parent_No: student.Parent_No,
+                address: student.address,
+                photo_url: student.photo_url
+            };
+        });
+
         return res.status(200).json({
             success: true,
-            students
+            message: `Found ${formattedStudents.length} students`,
+            students: formattedStudents
         });
     } catch (error) {
         console.error('Error in getTeacherStudents:', error);
-        return res.status(500).json({ message: "Server error" });
+        return res.status(500).json({ 
+            message: "Server error",
+            error: error.message 
+        });
     }
 };
 
@@ -199,7 +247,8 @@ export const updateStudentDetails = async (req, res) => {
             'previous_cgpa',
             'previous_percentages',
             'class_rank',
-            'attendance'
+            'attendance',
+            'address'
         ];
 
         const filteredUpdateData = Object.keys(updateData)
