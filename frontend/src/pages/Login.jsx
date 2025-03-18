@@ -36,7 +36,12 @@ const Login = () => {
         withCredentials: true,
       });
   
-      console.log("Login response:", res.data);
+      console.log("Login response:", {
+        status: res.status,
+        data: res.data,
+        role: res.data.role,
+        department: res.data.department
+      });
       
       if (!res.data._id) {
         throw new Error('Invalid response from server - no user ID');
