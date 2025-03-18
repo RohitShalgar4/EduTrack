@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { BASE_URL } from '../../main';
+import { useSelector } from 'react-redux';
 
 const StudentDetails = () => {
   const { studentId } = useParams();
@@ -10,6 +11,7 @@ const StudentDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const authUser = useSelector((state) => state.user.authUser);
   const [formData, setFormData] = useState({
     Mobile_No: '',
     Parent_No: '',
@@ -26,18 +28,19 @@ const StudentDetails = () => {
 
   const fetchStudentDetails = async () => {
     try {
-      const response = await axios.get(`${BASE_URL}/api/v1/teacher/student/${studentId}`, {
+      // Use the student route endpoint for both roles
+      const response = await axios.get(`${BASE_URL}/api/v1/student/${studentId}`, {
         withCredentials: true
       });
-      setStudent(response.data.student);
+      setStudent(response.data);
       setFormData({
-        Mobile_No: response.data.student.Mobile_No,
-        Parent_No: response.data.student.Parent_No,
-        previous_cgpa: response.data.student.previous_cgpa,
-        previous_percentages: response.data.student.previous_percentages,
-        class_rank: response.data.student.class_rank,
-        attendance: response.data.student.attendance,
-        address: response.data.student.address
+        Mobile_No: response.data.Mobile_No,
+        Parent_No: response.data.Parent_No,
+        previous_cgpa: response.data.previous_cgpa,
+        previous_percentages: response.data.previous_percentages,
+        class_rank: response.data.class_rank,
+        attendance: response.data.attendanceData,
+        address: response.data.address
       });
     } catch (error) {
       console.error('Error fetching student details:', error);
@@ -71,8 +74,13 @@ const StudentDetails = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Use different endpoints based on user role
+      const endpoint = authUser.role === 'department_admin'
+        ? `${BASE_URL}/api/v1/admin/student/${studentId}`
+        : `${BASE_URL}/api/v1/teacher/student/${studentId}`;
+
       const response = await axios.put(
-        `${BASE_URL}/api/v1/teacher/student/${studentId}`,
+        endpoint,
         formData,
         {
           withCredentials: true
