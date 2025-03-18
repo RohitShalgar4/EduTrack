@@ -304,4 +304,31 @@ export const updateTeacherPassword = async (req, res) => {
         console.error('Error in updateTeacherPassword:', error);
         return res.status(500).json({ message: "Server error" });
     }
+};
+
+export const getTeachersByDepartment = async (req, res) => {
+  try {
+    const { department } = req.query;
+    
+    if (!department) {
+      return res.status(400).json({
+        success: false,
+        message: "Department is required"
+      });
+    }
+
+    const teachers = await Teacher.find({ Department: department })
+      .select('full_name email Department Mobile_No photo_url');
+
+    res.status(200).json({
+      success: true,
+      teachers
+    });
+  } catch (error) {
+    console.error('Error in getTeachersByDepartment:', error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching teachers"
+    });
+  }
 }; 
