@@ -1,10 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Users, BookOpen, UserCog, BarChart3, UserPlus, Search } from 'lucide-react';
 import AddStudent from './forms/AddStudent'; // Import your AddStudent component
 import AddTeacher from './forms/AddTeacher'; // Import your AddTeacher component
 import AddAdmin from './forms/AddAdmin'; // Import your AddAdmin component
 // import AddCourse from './AddCourse'; // Import your AddCourse component
 import PropTypes from 'prop-types';
+import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { BASE_URL } from '../../main';
+import toast from 'react-hot-toast';
 
 const ActivityItem = ({ title, description, time }) => {
   return (
@@ -23,29 +28,111 @@ ActivityItem.propTypes = {
 };
 
 const SuperAdminDashboard = () => {
+  const navigate = useNavigate();
   const [openModal, setOpenModal] = useState(null); // State to track which modal is open
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState('student');
+  const [students, setStudents] = useState([]);
+  const [teachers, setTeachers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    students: 0,
+    teachers: 0,
+    admins: 8,
+    courses: 32
+  });
+  
+  // Get the authenticated user's data from Redux
+  const authUser = useSelector((state) => state.user.authUser);
 
-  // Mock data for demonstration
-  const mockResults = [
-    { id: 1, name: 'John Doe', email: 'john.doe@example.com', type: 'student', details: 'Grade 10 - Science' },
-    { id: 2, name: 'Jane Smith', email: 'jane.smith@example.com', type: 'student', details: 'Grade 11 - Arts' },
-    { id: 3, name: 'Dr. Sarah Johnson', email: 'sarah.j@example.com', type: 'teacher', details: 'Physics Department' },
-    { id: 4, name: 'Prof. David Wilson', email: 'david.w@example.com', type: 'teacher', details: 'Mathematics Department' },
-  ];
+  useEffect(() => {
+    // Check if user is authenticated and is a super admin
+    if (!authUser || authUser.role !== 'super_admin') {
+      console.log('SuperAdminDashboard - Unauthorized access, redirecting to login');
+      navigate('/login');
+      return;
+    }
 
-  const filteredResults = mockResults.filter(
-    (result) =>
-      result.type === searchType &&
-      result.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    const fetchData = async () => {
+      try {
+        // Fetch all students
+        const studentsResponse = await axios.get(`${BASE_URL}/api/v1/admin/all/students`, {
+          withCredentials: true
+        });
 
-  const stats = [
-    { label: 'Total Students', value: '1,245', icon: <Users size={24} className="text-blue-500" /> },
-    { label: 'Total Teachers', value: '48', icon: <BookOpen size={24} className="text-green-500" /> },
-    { label: 'Total Admins', value: '8', icon: <UserCog size={24} className="text-purple-500" /> },
-    { label: 'Active Courses', value: '32', icon: <BarChart3 size={24} className="text-orange-500" /> },
+        console.log('Students API Response:', {
+          status: studentsResponse.status,
+          success: studentsResponse.data.success,
+          count: studentsResponse.data.students?.length,
+          data: studentsResponse.data
+        });
+
+        if (studentsResponse.data.success) {
+          setStudents(studentsResponse.data.students);
+          setStats(prev => ({ ...prev, students: studentsResponse.data.students.length }));
+        } else {
+          console.error('Failed to fetch students:', studentsResponse.data);
+          toast.error(studentsResponse.data.message || 'Failed to fetch students');
+        }
+
+        // Fetch all teachers
+        const teachersResponse = await axios.get(`${BASE_URL}/api/v1/admin/all/teachers`, {
+          withCredentials: true
+        });
+
+        console.log('Teachers API Response:', {
+          status: teachersResponse.status,
+          success: teachersResponse.data.success,
+          count: teachersResponse.data.teachers?.length,
+          data: teachersResponse.data
+        });
+
+        if (teachersResponse.data.success) {
+          setTeachers(teachersResponse.data.teachers);
+          setStats(prev => ({ ...prev, teachers: teachersResponse.data.teachers.length }));
+        } else {
+          console.error('Failed to fetch teachers:', teachersResponse.data);
+          toast.error(teachersResponse.data.message || 'Failed to fetch teachers');
+        }
+
+      } catch (error) {
+        console.error('Error fetching data:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
+        
+        if (error.response?.status === 401) {
+          toast.error('Session expired. Please login again');
+          navigate('/login');
+        } else {
+          toast.error(error.response?.data?.message || 'Failed to fetch data');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [authUser, navigate]);
+
+  const filteredResults = searchType === 'student' 
+    ? students.filter(student => 
+        student.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.registration_number.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : teachers.filter(teacher => 
+        teacher.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        teacher.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        teacher.department.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+  const statsData = [
+    { label: 'Total Students', value: String(stats.students), icon: <Users size={24} className="text-blue-500" /> },
+    { label: 'Total Teachers', value: String(stats.teachers), icon: <BookOpen size={24} className="text-green-500" /> },
+    { label: 'Total Admins', value: String(stats.admins), icon: <UserCog size={24} className="text-purple-500" /> },
+    { label: 'Active Courses', value: String(stats.courses), icon: <BarChart3 size={24} className="text-orange-500" /> },
   ];
 
   // Function to close the modal
@@ -62,7 +149,7 @@ const SuperAdminDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
+          {statsData.map((stat, index) => (
             <div key={index} className="bg-white rounded-lg shadow-sm p-6 flex items-center hover:shadow-md transition-shadow duration-200">
               <div className="p-3 rounded-full bg-gray-100 mr-4 flex items-center justify-center">
                 {stat.icon}
@@ -108,7 +195,7 @@ const SuperAdminDashboard = () => {
                 <input
                   type="text"
                   placeholder={`Search ${searchType}s by name, email, or ${
-                    searchType === 'student' ? 'grade' : 'department'
+                    searchType === 'student' ? 'registration number' : 'department'
                   }...`}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={searchQuery}
@@ -118,23 +205,34 @@ const SuperAdminDashboard = () => {
               </div>
             </div>
 
-            <div className="space-y-4">
-              {filteredResults.length > 0 ? (
+            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                </div>
+              ) : filteredResults.length > 0 ? (
                 filteredResults.map((result) => (
-                  <div key={result.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                  <div key={result._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
                     <div>
-                      <h3 className="font-medium text-gray-900">{result.name}</h3>
+                      <h3 className="font-medium text-gray-900">{result.full_name}</h3>
                       <p className="text-sm text-gray-500">{result.email}</p>
-                      <p className="text-sm text-gray-600 mt-1">{result.details}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {searchType === 'student' 
+                          ? `Registration: ${result.registration_number} - ${result.Department}`
+                          : `${result.department} Department`}
+                      </p>
                     </div>
-                    <button className="text-blue-500 hover:text-blue-700 text-sm font-medium">
+                    <button 
+                      onClick={() => navigate(`/student/${result._id}`)}
+                      className="text-blue-500 hover:text-blue-700 text-sm font-medium"
+                    >
                       View Details
                     </button>
                   </div>
                 ))
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  No {searchType}s found matching your search criteria
+                  {searchQuery ? `No ${searchType}s found matching your search criteria` : `Enter a search term to find ${searchType}s`}
                 </div>
               )}
             </div>
