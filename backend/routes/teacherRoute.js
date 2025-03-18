@@ -1,5 +1,5 @@
 import express from "express";
-import { addTeacher, getAllTeachers, getTeacher, updateTeacher, deleteTeacher, getTeacherStudents, getStudentDetails, updateStudentDetails } from "../controllers/teacherController.js";
+import { addTeacher, getAllTeachers, getTeacher, updateTeacher, deleteTeacher, getTeacherStudents, getStudentDetails, updateStudentDetails, getTeachersByDepartment } from "../controllers/teacherController.js";
 import { updatePassword } from "../controllers/userController.js";
 import isAuthenticated from "../middleware/isAuthenticated.js";
 import checkRole from "../middleware/checkRole.js";
@@ -21,5 +21,8 @@ router.put("/student/:studentId", isAuthenticated, checkRole("teacher"), updateS
 
 // Teacher password update route - ensure user is a teacher
 router.post("/update-password", isAuthenticated, checkRole("teacher"), updatePassword);
+
+// Add the new route for getting teachers by department
+router.get("/department", isAuthenticated, checkRole("admin"), getTeachersByDepartment);
 
 export default router; 
