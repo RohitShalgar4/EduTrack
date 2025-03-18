@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Users, BookOpen, UserCog, BarChart3, UserPlus, Search } from 'lucide-react';
 import AddStudent from './forms/AddStudent';
 import AddTeacher from './forms/AddTeacher';
 import PropTypes from 'prop-types';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { BASE_URL } from '../../main';
+import toast from 'react-hot-toast';
 
 const ActivityItem = ({ title, description, time }) => {
   return (
@@ -22,14 +26,29 @@ ActivityItem.propTypes = {
 };
 
 const DepartmentAdminDashboard = () => {
+  const navigate = useNavigate();
   const [openModal, setOpenModal] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState('student');
+  const [students, setStudents] = useState([]);
+  const [teachers, setTeachers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    students: 0,
+    teachers: 0,
+    courses: 12, // This could be made dynamic later
+    performance: 78 // This could be made dynamic later
+  });
   
   // Get the authenticated user's data from Redux
   const authUser = useSelector((state) => state.user.authUser);
   
-  console.log("Auth User Full Data:", authUser); // Debug log
+  console.log("DepartmentAdminDashboard - Auth User:", {
+    hasUser: Boolean(authUser),
+    role: authUser?.role,
+    department: authUser?.department,
+    fullData: authUser
+  });
   
   // Department mapping
   const departmentFullNames = {
@@ -56,25 +75,124 @@ const DepartmentAdminDashboard = () => {
   const departmentName = getDepartmentFullName(authUser?.department);
   console.log("Final Department Name:", departmentName); // Debug log
 
-  // Mock data for demonstration - filtered by department
-  const mockResults = [
-    { id: 1, name: 'John Doe', email: 'john.doe@example.com', type: 'student', details: `Grade 10 - ${departmentName}` },
-    { id: 2, name: 'Jane Smith', email: 'jane.smith@example.com', type: 'student', details: `Grade 11 - ${departmentName}` },
-    { id: 3, name: 'Dr. Sarah Johnson', email: 'sarah.j@example.com', type: 'teacher', details: `${departmentName} Department` },
-    { id: 4, name: 'Prof. David Wilson', email: 'david.w@example.com', type: 'teacher', details: `${departmentName} Department` },
-  ];
+  useEffect(() => {
+    // Check if user is authenticated and is a department admin
+    if (!authUser || authUser.role !== 'department_admin') {
+      console.log('DepartmentAdminDashboard - Unauthorized access, redirecting to login');
+      navigate('/login');
+      return;
+    }
 
-  const filteredResults = mockResults.filter(
-    (result) =>
-      result.type === searchType &&
-      result.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    const fetchData = async () => {
+      try {
+        console.log('Auth State:', {
+          hasDepartment: Boolean(authUser?.department),
+          department: authUser?.department,
+          role: authUser?.role
+        });
+        
+        if (!authUser?.department) {
+          console.error('No department found');
+          toast.error('Department information missing');
+          return;
+        }
 
-  const stats = [
-    { label: 'Department Students', value: '245', icon: <Users size={24} className="text-blue-500" /> },
-    { label: 'Department Teachers', value: '18', icon: <BookOpen size={24} className="text-green-500" /> },
-    { label: 'Department Courses', value: '12', icon: <BarChart3 size={24} className="text-orange-500" /> },
-    { label: 'Average Performance', value: '78%', icon: <UserCog size={24} className="text-purple-500" /> },
+        console.log('Fetching data with department:', authUser.department);
+        
+        // Fetch students
+        console.log('Making request to:', `${BASE_URL}/api/v1/admin/department/students`);
+        const studentsResponse = await axios.get(`${BASE_URL}/api/v1/admin/department/students`, {
+          withCredentials: true
+        });
+
+        console.log('Students API Response:', {
+          status: studentsResponse.status,
+          success: studentsResponse.data.success,
+          count: studentsResponse.data.students?.length,
+          data: studentsResponse.data,
+          headers: studentsResponse.headers,
+          config: {
+            url: studentsResponse.config.url,
+            method: studentsResponse.config.method,
+            headers: studentsResponse.config.headers
+          }
+        });
+
+        if (studentsResponse.data.success) {
+          console.log('Setting students state with:', studentsResponse.data.students);
+          setStudents(studentsResponse.data.students);
+          setStats(prev => ({ ...prev, students: studentsResponse.data.students.length }));
+          console.log('Updated students state:', studentsResponse.data.students.length);
+        } else {
+          console.error('Failed to fetch students:', studentsResponse.data);
+          toast.error(studentsResponse.data.message || 'Failed to fetch students');
+        }
+
+        // Fetch teachers
+        const teachersResponse = await axios.get(`${BASE_URL}/api/v1/admin/department/teachers`, {
+          withCredentials: true
+        });
+
+        console.log('Teachers API Response:', {
+          status: teachersResponse.status,
+          success: teachersResponse.data.success,
+          count: teachersResponse.data.teachers?.length,
+          data: teachersResponse.data
+        });
+
+        if (teachersResponse.data.success) {
+          setTeachers(teachersResponse.data.teachers);
+          setStats(prev => ({ ...prev, teachers: teachersResponse.data.teachers.length }));
+          console.log('Updated teachers state:', teachersResponse.data.teachers.length);
+        }
+
+      } catch (error) {
+        console.error('Error fetching data:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
+        
+        if (error.response?.status === 401) {
+          toast.error('Session expired. Please login again');
+          navigate('/login');
+        } else {
+          toast.error(error.response?.data?.message || 'Failed to fetch data');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (authUser?.department) {
+      console.log('Starting data fetch with:', {
+        department: authUser.department
+      });
+      fetchData();
+    } else {
+      console.log('Waiting for auth data:', { 
+        hasDepartment: Boolean(authUser?.department),
+        authUser: authUser
+      });
+      setLoading(false);
+    }
+  }, [authUser?.department, navigate]);
+
+  const filteredResults = searchType === 'student' 
+    ? students.filter(student => 
+        student.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.email.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : teachers.filter(teacher => 
+        teacher.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        teacher.email.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+  const statsData = [
+    { label: 'Department Students', value: String(stats.students), icon: <Users size={24} className="text-blue-500" /> },
+    { label: 'Department Teachers', value: String(stats.teachers), icon: <BookOpen size={24} className="text-green-500" /> },
+    { label: 'Department Courses', value: String(stats.courses), icon: <BarChart3 size={24} className="text-orange-500" /> },
+    { label: 'Average Performance', value: `${stats.performance}%`, icon: <UserCog size={24} className="text-purple-500" /> },
   ];
 
   const closeModal = () => {
@@ -83,6 +201,7 @@ const DepartmentAdminDashboard = () => {
 
   return (
     <div className="w-full h-full overflow-auto py-6 px-4">
+
       <div className="max-w-9xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mt-8 text-gray-800">Welcome back, Department Admin!</h1>
@@ -90,7 +209,7 @@ const DepartmentAdminDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
+          {statsData.map((stat, index) => (
             <div key={index} className="bg-white rounded-lg shadow-sm p-6 flex items-center hover:shadow-md transition-shadow duration-200">
               <div className="p-3 rounded-full bg-gray-100 mr-4 flex items-center justify-center">
                 {stat.icon}
@@ -144,23 +263,34 @@ const DepartmentAdminDashboard = () => {
               </div>
             </div>
 
-            <div className="space-y-4">
-              {filteredResults.length > 0 ? (
+            <div className="space-y-4 max-h-[200px] overflow-y-auto pr-2">
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                </div>
+              ) : filteredResults.length > 0 ? (
                 filteredResults.map((result) => (
-                  <div key={result.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                  <div key={result._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
                     <div>
-                      <h3 className="font-medium text-gray-900">{result.name}</h3>
+                      <h3 className="font-medium text-gray-900">{result.full_name}</h3>
                       <p className="text-sm text-gray-500">{result.email}</p>
-                      <p className="text-sm text-gray-600 mt-1">{result.details}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {searchType === 'student' 
+                          ? `Semester ${result.current_semester} - ${result.department}`
+                          : `${result.department} Department`}
+                      </p>
                     </div>
-                    <button className="text-blue-500 hover:text-blue-700 text-sm font-medium">
+                    <button 
+                      onClick={() => navigate(`/student/${result._id}`)}
+                      className="text-blue-500 hover:text-blue-700 text-sm font-medium"
+                    >
                       View Details
                     </button>
                   </div>
                 ))
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  No {searchType}s found matching your search criteria
+                  {searchQuery ? `No ${searchType}s found matching your search criteria` : `Enter a search term to find ${searchType}s`}
                 </div>
               )}
             </div>
