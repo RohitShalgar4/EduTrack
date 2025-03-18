@@ -8,8 +8,17 @@ const StudentDetails = () => {
   const { studentId } = useParams();
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [editMode, setEditMode] = useState(false);
-  const [formData, setFormData] = useState({});
+  const [error, setError] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    Mobile_No: '',
+    Parent_No: '',
+    previous_cgpa: [],
+    previous_percentages: [],
+    class_rank: 0,
+    attendance: [],
+    address: ''
+  });
 
   useEffect(() => {
     fetchStudentDetails();
@@ -21,16 +30,25 @@ const StudentDetails = () => {
         withCredentials: true
       });
       setStudent(response.data.student);
-      setFormData(response.data.student);
-      setLoading(false);
+      setFormData({
+        Mobile_No: response.data.student.Mobile_No,
+        Parent_No: response.data.student.Parent_No,
+        previous_cgpa: response.data.student.previous_cgpa,
+        previous_percentages: response.data.student.previous_percentages,
+        class_rank: response.data.student.class_rank,
+        attendance: response.data.student.attendance,
+        address: response.data.student.address
+      });
     } catch (error) {
       console.error('Error fetching student details:', error);
-      toast.error('Failed to fetch student details');
+      setError(error.response?.data?.message || 'Error fetching student details');
+      toast.error(error.response?.data?.message || 'Error fetching student details');
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (e) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -38,145 +56,213 @@ const StudentDetails = () => {
     }));
   };
 
+  const handleAttendanceChange = (index, value) => {
+    const newAttendance = [...formData.attendance];
+    newAttendance[index] = {
+      ...newAttendance[index],
+      attendance: parseFloat(value) || 0
+    };
+    setFormData(prev => ({
+      ...prev,
+      attendance: newAttendance
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`${BASE_URL}/api/v1/teacher/student/${studentId}`, formData, {
-        withCredentials: true
-      });
+      const response = await axios.put(
+        `${BASE_URL}/api/v1/teacher/student/${studentId}`,
+        formData,
+        {
+          withCredentials: true
+        }
+      );
+      setStudent(response.data.student);
+      setIsEditing(false);
       toast.success('Student details updated successfully');
-      setEditMode(false);
-      fetchStudentDetails();
     } catch (error) {
       console.error('Error updating student details:', error);
-      toast.error('Failed to update student details');
+      toast.error(error.response?.data?.message || 'Error updating student details');
     }
   };
 
   if (loading) {
-    return <div className="text-center py-8">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-red-500 text-center">
+          <h2 className="text-2xl font-bold mb-4">Error</h2>
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!student) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-gray-500 text-center">
+          <h2 className="text-2xl font-bold mb-4">Student Not Found</h2>
+          <p>The requested student could not be found.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="w-full h-full overflow-auto py-6 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Student Details</h1>
-          <p className="text-gray-600 mt-2">View and update student information</p>
+    <div className="container mx-auto px-4 py-8">
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">Student Details</h1>
+          <button
+            onClick={() => setIsEditing(!isEditing)}
+            className={`px-4 py-2 rounded ${
+              isEditing ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'
+            } text-white`}
+          >
+            {isEditing ? 'Cancel' : 'Edit Details'}
+          </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold">{student?.full_name}</h2>
-            <button
-              onClick={() => setEditMode(!editMode)}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-            >
-              {editMode ? 'Cancel Edit' : 'Edit Details'}
-            </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-gray-700">Basic Information</h2>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Full Name</label>
+              <p className="mt-1 text-gray-900">{student.full_name}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Registration Number</label>
+              <p className="mt-1 text-gray-900">{student.registration_number}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Department</label>
+              <p className="mt-1 text-gray-900">{student.Department}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Class</label>
+              <p className="mt-1 text-gray-900">{student.class}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Current Semester</label>
+              <p className="mt-1 text-gray-900">{student.current_semester}</p>
+            </div>
           </div>
 
-          {editMode ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Mobile Number</label>
-                  <input
-                    type="text"
-                    name="Mobile_No"
-                    value={formData.Mobile_No || ''}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Parent Number</label>
-                  <input
-                    type="text"
-                    name="Parent_No"
-                    value={formData.Parent_No || ''}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Previous CGPA</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="previous_cgpa"
-                    value={formData.previous_cgpa || ''}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Previous Percentages</label>
-                  <input
-                    type="text"
-                    name="previous_percentages"
-                    value={formData.previous_percentages || ''}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Class Rank</label>
-                  <input
-                    type="number"
-                    name="class_rank"
-                    value={formData.class_rank || ''}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Attendance</label>
-                  <input
-                    type="number"
-                    name="attendance"
-                    value={formData.attendance || ''}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end mt-6">
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-medium text-gray-900">Personal Information</h3>
-                <div className="mt-3 space-y-2">
-                  <p><span className="text-gray-600">Full Name:</span> {student?.full_name}</p>
-                  <p><span className="text-gray-600">Email:</span> {student?.email}</p>
-                  <p><span className="text-gray-600">Mobile:</span> {student?.Mobile_No || 'Not provided'}</p>
-                  <p><span className="text-gray-600">Parent Contact:</span> {student?.Parent_No || 'Not provided'}</p>
-                  <p><span className="text-gray-600">Address:</span> {student?.address}</p>
-                </div>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">Academic Information</h3>
-                <div className="mt-3 space-y-2">
-                  <p><span className="text-gray-600">Registration Number:</span> {student?.registration_number}</p>
-                  <p><span className="text-gray-600">Department:</span> {student?.Department}</p>
-                  <p><span className="text-gray-600">Class:</span> {student?.class}</p>
-                  <p><span className="text-gray-600">Current Semester:</span> {student?.current_semester}</p>
-                  <p><span className="text-gray-600">Previous CGPA:</span> {student?.previous_cgpa || 'Not provided'}</p>
-                  <p><span className="text-gray-600">Class Rank:</span> {student?.class_rank || 'Not provided'}</p>
-                  <p><span className="text-gray-600">Attendance:</span> {student?.attendance || 'Not provided'}</p>
-                </div>
-              </div>
+          {/* Academic Performance */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-gray-700">Academic Performance</h2>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Current CGPA</label>
+              <p className="mt-1 text-gray-900">{student.previous_cgpa[student.previous_cgpa.length - 1] || 'N/A'}</p>
             </div>
-          )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Class Rank</label>
+              {isEditing ? (
+                <input
+                  type="number"
+                  name="class_rank"
+                  value={formData.class_rank}
+                  onChange={handleChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              ) : (
+                <p className="mt-1 text-gray-900">{student.class_rank}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Contact Information */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-gray-700">Contact Information</h2>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Mobile Number</label>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="Mobile_No"
+                  value={formData.Mobile_No}
+                  onChange={handleChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              ) : (
+                <p className="mt-1 text-gray-900">{student.Mobile_No}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Parent's Number</label>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="Parent_No"
+                  value={formData.Parent_No}
+                  onChange={handleChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              ) : (
+                <p className="mt-1 text-gray-900">{student.Parent_No}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Address</label>
+              {isEditing ? (
+                <textarea
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  rows="3"
+                />
+              ) : (
+                <p className="mt-1 text-gray-900">{student.address}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Attendance */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-gray-700">Attendance</h2>
+            <div className="space-y-2">
+              {formData.attendance.map((record, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <span className="text-gray-700">{record.month}</span>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={record.attendance}
+                      onChange={(e) => handleAttendanceChange(index, e.target.value)}
+                      className="w-20 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  ) : (
+                    <span className="text-gray-900">{record.attendance}%</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
+
+        {isEditing && (
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={handleSubmit}
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+            >
+              Save Changes
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
