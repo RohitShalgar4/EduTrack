@@ -1,5 +1,7 @@
 import { Admin } from "../models/adminModel.js";
 import bcrypt from "bcryptjs";
+import { User } from "../models/userModel.js";
+import { Teacher } from "../models/teacherModel.js";
 
 export const addAdmin = async (req, res) => {
     try {
@@ -148,5 +150,276 @@ export const updateAdminPassword = async (req, res) => {
     } catch (error) {
         console.error('Error in updateAdminPassword:', error);
         return res.status(500).json({ message: "Server error" });
+    }
+};
+
+// Get all students (super admin only)
+export const getAllStudents = async (req, res) => {
+    try {
+        console.log('Super admin fetching all students');
+        
+        // Get all students (all users in the User model are students)
+        const students = await User.find()
+            .select('-password')
+            .sort({ full_name: 1 });
+
+        console.log(`Found ${students.length} total students`);
+
+        // Format student data
+        const formattedStudents = students.map(student => ({
+            _id: student._id,
+            full_name: student.full_name,
+            registration_number: student.registration_number,
+            Department: student.Department,
+            current_semester: student.current_semester,
+            email: student.email,
+            Mobile_No: student.Mobile_No,
+            photo_url: student.photo_url,
+            class_rank: student.class_rank || 'Not Available',
+            cgpa: student.previous_cgpa?.length > 0 ? student.previous_cgpa[student.previous_cgpa.length - 1] : '0.00',
+            sgpa: student.previous_cgpa?.length > 0 ? student.previous_cgpa[student.previous_cgpa.length - 1] : '0.00',
+            attendance: student.attendance?.length > 0 
+                ? (student.attendance.reduce((sum, entry) => sum + entry.attendance, 0) / student.attendance.length).toFixed(2)
+                : '0'
+        }));
+
+        return res.status(200).json({
+            success: true,
+            message: `Found ${formattedStudents.length} students`,
+            students: formattedStudents
+        });
+    } catch (error) {
+        console.error('Error in getAllStudents:', error);
+        return res.status(500).json({ 
+            success: false,
+            message: "Server error",
+            error: error.message 
+        });
+    }
+};
+
+// Get all teachers (super admin only)
+export const getAllTeachers = async (req, res) => {
+    try {
+        console.log('Super admin fetching all teachers');
+        
+        // Get all teachers
+        const teachers = await Teacher.find()
+            .select('-password')
+            .sort({ full_name: 1 });
+
+        console.log(`Found ${teachers.length} total teachers`);
+
+        // Format teacher data
+        const formattedTeachers = teachers.map(teacher => ({
+            _id: teacher._id,
+            full_name: teacher.full_name,
+            email: teacher.email,
+            department: teacher.department,
+            Mobile_No: teacher.Mobile_No,
+            qualification: teacher.qualification || 'Not Available',
+            experience: teacher.yearOfExperience || 'Not Available',
+            photo_url: teacher.photo_url || '',
+            subjects: teacher.subjects || []
+        }));
+
+        return res.status(200).json({
+            success: true,
+            message: `Found ${formattedTeachers.length} teachers`,
+            teachers: formattedTeachers
+        });
+    } catch (error) {
+        console.error('Error in getAllTeachers:', error);
+        return res.status(500).json({ 
+            success: false,
+            message: "Server error",
+            error: error.message 
+        });
+    }
+};
+
+// Get students by department (department admin only)
+export const getStudentsByDepartment = async (req, res) => {
+    try {
+        const userDepartment = req.department;
+        console.log('Department admin fetching students for department:', userDepartment);
+        console.log('Request headers:', req.headers);
+        console.log('Request user:', req.user);
+        console.log('Request department:', req.department);
+
+        if (!userDepartment) {
+            console.log('Department admin without department');
+            return res.status(403).json({ 
+                success: false,
+                message: "Access denied. Department information missing." 
+            });
+        }
+
+        // Get students from the department admin's department
+        console.log('Querying students with:', { Department: userDepartment });
+        const students = await User.find({ 
+            Department: userDepartment
+        })
+        .select('-password')
+        .sort({ full_name: 1 });
+
+        console.log('Raw students data:', students);
+        console.log(`Found ${students.length} students in department ${userDepartment}`);
+
+        // Format student data
+        const formattedStudents = students.map(student => {
+            console.log('Processing student:', student);
+            return {
+                _id: student._id,
+                full_name: student.full_name,
+                registration_number: student.registration_number,
+                department: student.Department,
+                current_semester: student.current_semester,
+                email: student.email,
+                Mobile_No: student.Mobile_No,
+                photo_url: student.photo_url,
+                class_rank: student.class_rank || 'Not Available',
+                cgpa: student.previous_cgpa?.length > 0 ? student.previous_cgpa[student.previous_cgpa.length - 1] : '0.00',
+                sgpa: student.previous_cgpa?.length > 0 ? student.previous_cgpa[student.previous_cgpa.length - 1] : '0.00',
+                attendance: student.attendance?.length > 0 
+                    ? (student.attendance.reduce((sum, entry) => sum + entry.attendance, 0) / student.attendance.length).toFixed(2)
+                    : '0'
+            };
+        });
+
+        console.log('Formatted students data:', formattedStudents);
+
+        return res.status(200).json({
+            success: true,
+            message: `Found ${formattedStudents.length} students`,
+            students: formattedStudents
+        });
+    } catch (error) {
+        console.error('Error in getStudentsByDepartment:', error);
+        console.error('Error stack:', error.stack);
+        return res.status(500).json({ 
+            success: false,
+            message: "Server error",
+            error: error.message 
+        });
+    }
+};
+
+// Get teachers by department (department admin only)
+export const getTeachersByDepartment = async (req, res) => {
+    try {
+        const userDepartment = req.department;
+        console.log('Department admin fetching teachers for department:', userDepartment);
+
+        if (!userDepartment) {
+            console.log('Department admin without department');
+            return res.status(403).json({ 
+                success: false,
+                message: "Access denied. Department information missing." 
+            });
+        }
+
+        // Get teachers from the department admin's department
+        const teachers = await Teacher.find({ 
+            department: userDepartment 
+        })
+        .select('-password')
+        .sort({ full_name: 1 });
+
+        console.log(`Found ${teachers.length} teachers in department ${userDepartment}`);
+
+        // Format teacher data
+        const formattedTeachers = teachers.map(teacher => ({
+            _id: teacher._id,
+            full_name: teacher.full_name,
+            email: teacher.email,
+            department: teacher.department,
+            Mobile_No: teacher.Mobile_No,
+            qualification: teacher.qualification || 'Not Available',
+            experience: teacher.yearOfExperience || 'Not Available',
+            photo_url: teacher.photo_url || '',
+            subjects: teacher.subjects || []
+        }));
+
+        return res.status(200).json({
+            success: true,
+            message: `Found ${formattedTeachers.length} teachers`,
+            teachers: formattedTeachers
+        });
+    } catch (error) {
+        console.error('Error in getTeachersByDepartment:', error);
+        return res.status(500).json({ 
+            success: false,
+            message: "Server error",
+            error: error.message 
+        });
+    }
+};
+
+// Update student details (department admin only)
+export const updateStudentDetails = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const userDepartment = req.department;
+        const updateData = req.body;
+
+        if (!userDepartment) {
+            return res.status(403).json({ 
+                success: false,
+                message: "Access denied. Department information missing." 
+            });
+        }
+
+        // Get student
+        const student = await User.findById(studentId);
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        // Verify student is from admin's department
+        if (student.Department !== userDepartment) {
+            return res.status(403).json({ 
+                success: false,
+                message: "Access denied. Student not in your department" 
+            });
+        }
+
+        // Only allow updating specific fields
+        const allowedFields = [
+            'Mobile_No',
+            'Parent_No',
+            'previous_cgpa',
+            'previous_percentages',
+            'class_rank',
+            'attendance',
+            'address'
+        ];
+
+        const filteredUpdateData = Object.keys(updateData)
+            .filter(key => allowedFields.includes(key))
+            .reduce((obj, key) => {
+                obj[key] = updateData[key];
+                return obj;
+            }, {});
+
+        // Update student
+        const updatedStudent = await User.findByIdAndUpdate(
+            studentId,
+            filteredUpdateData,
+            { new: true }
+        ).select('-password');
+
+        return res.status(200).json({
+            success: true,
+            message: "Student details updated successfully",
+            student: updatedStudent
+        });
+    } catch (error) {
+        console.error('Error in updateStudentDetails:', error);
+        return res.status(500).json({ 
+            success: false,
+            message: "Server error",
+            error: error.message 
+        });
     }
 }; 
