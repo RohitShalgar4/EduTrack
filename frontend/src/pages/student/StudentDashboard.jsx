@@ -118,16 +118,155 @@ const StudentDashboard = () => {
     }
 
     const doc = new jsPDF();
-    doc.setFontSize(20);
-    doc.text('Student Progress Report', 20, 20);
+    
+    // Set margins and dimensions
+    const margin = 20;
+    const pageWidth = doc.internal.pageSize.width;
+    const contentWidth = pageWidth - (2 * margin);
+    
+    // Add college header with blue background
+    doc.setFillColor(59, 130, 246);
+    doc.rect(0, 0, pageWidth, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.text('N B NAVALE SINHGAD COLLEGE OF ENGINEERING', pageWidth / 2, 20, { align: 'center' });
     doc.setFontSize(12);
-    doc.text(`Name: ${student.full_name}`, 20, 40);
-    doc.text(`Registration Number: ${student.registration_number}`, 20, 50);
-    doc.text(`CGPA: ${student.cgpa}`, 20, 60);
-    doc.text(`Current Semester: ${student.current_semester}`, 20, 70);
-    doc.text(`Class Rank: ${student.class_rank}`, 20, 80);
-    doc.text(`Attendance: ${student.attendance}%`, 20, 90);
-    doc.save(`${student.full_name}-progress-report.pdf`);
+    doc.text('(Approved by AICTE & Affiliated to P.A.H. Solapur University, Solapur)', pageWidth / 2, 30, { align: 'center' });
+
+    // Add student photo and basic info section
+    doc.addImage(student.photo_url, 'JPEG', margin, 50, 35, 45);
+    
+    // Student basic info with better spacing
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text(String(student.full_name), margin + 45, 60);
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(11);
+    const infoStartY = 70;
+    const infoSpacing = 12;
+    [
+      ['Registration Number:', student.registration_number],
+      ['Department:', student.Department],
+      ['Current Semester:', student.current_semester],
+      ['Mobile Number:', student.Mobile_No],
+      ["Parent's Number:", student.Parent_No],
+      ['Address:', student.address],
+      ['Gender:', student.gender]
+    ].forEach((info, index) => {
+      doc.setFont(undefined, 'bold');
+      doc.text(info[0], margin + 45, infoStartY + (index * infoSpacing));
+      doc.setFont(undefined, 'normal');
+      doc.text(String(info[1]), margin + 45 + doc.getTextWidth(info[0]) + 5, infoStartY + (index * infoSpacing));
+    });
+
+    // Academic Performance section with blue header
+    const academicY = infoStartY + (8 * infoSpacing);
+    doc.setFillColor(240, 247, 255);
+    doc.rect(margin, academicY, contentWidth, 10, 'F');
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(59, 130, 246);
+    doc.text('ACADEMIC PERFORMANCE', margin + 5, academicY + 8);
+    
+    // Academic stats in a grid layout
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    const statsStartY = academicY + 20;
+    const statsData = [
+      ['Current CGPA:', String(student.cgpa || '0.00')],
+      ['Current SGPA:', String(student.sgpa || '0.00')],
+      ['Class Rank:', String(student.class_rank || 'N/A')],
+      ['Overall Attendance:', `${String(student.attendance || '0')}%`]
+    ];
+
+    statsData.forEach((stat, index) => {
+      const x = margin + (index % 2) * (contentWidth / 2);
+      const y = statsStartY + Math.floor(index / 2) * 15;
+      doc.setFont(undefined, 'bold');
+      doc.text(stat[0], x, y);
+      doc.setFont(undefined, 'normal');
+      doc.text(stat[1], x + doc.getTextWidth(stat[0]) + 5, y);
+    });
+
+    // Previous Academic Performance section
+    const prevAcadY = statsStartY + 40;
+    doc.setFillColor(240, 247, 255);
+    doc.rect(margin, prevAcadY, contentWidth, 10, 'F');
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(59, 130, 246);
+    doc.text('PREVIOUS ACADEMIC RECORDS', margin + 5, prevAcadY + 8);
+
+    // CGPA History and Percentages in two columns
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    const historyStartY = prevAcadY + 25;
+    
+    // CGPA History
+    doc.setFont(undefined, 'bold');
+    doc.text('Previous CGPA History:', margin, historyStartY);
+    doc.setFont(undefined, 'normal');
+    student.previous_cgpa?.forEach((cgpa, index) => {
+      doc.text(`Semester ${index + 1}: ${cgpa}`, margin + 10, historyStartY + ((index + 1) * 12));
+    });
+
+    // Percentages
+    doc.setFont(undefined, 'bold');
+    doc.text('Previous Percentages:', margin + (contentWidth / 2), historyStartY);
+    doc.setFont(undefined, 'normal');
+    student.previous_percentages?.forEach((percentage, index) => {
+      doc.text(`Semester ${index + 1}: ${percentage}%`, margin + (contentWidth / 2) + 10, historyStartY + ((index + 1) * 12));
+    });
+
+    // Achievements section
+    const achieveY = historyStartY + Math.max(
+      (student.previous_cgpa?.length || 0),
+      (student.previous_percentages?.length || 0)
+    ) * 12 + 30;
+
+    doc.setFillColor(240, 247, 255);
+    doc.rect(margin, achieveY, contentWidth, 10, 'F');
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(59, 130, 246);
+    doc.text('ACHIEVEMENTS', margin + 5, achieveY + 8);
+
+    // List achievements with bullet points
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    if (student.achievements?.length > 0) {
+      student.achievements.forEach((achievement, index) => {
+        const y = achieveY + 25 + (index * 25);
+        doc.setFont(undefined, 'bold');
+        doc.text(`• ${String(achievement.title)}`, margin + 5, y);
+        doc.setFont(undefined, 'normal');
+        doc.text(String(achievement.description), margin + 10, y + 8);
+        doc.setFontSize(10);
+        doc.text(String(achievement.date), margin + 10, y + 16);
+        doc.setFontSize(11);
+      });
+    } else {
+      doc.setFont(undefined, 'normal');
+      doc.text('No achievements recorded', margin + 5, achieveY + 25);
+    }
+
+    // Add footer with page numbers
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(10);
+      doc.setTextColor(128, 128, 128);
+      doc.text(
+        `Page ${i} of ${pageCount}`,
+        pageWidth / 2,
+        doc.internal.pageSize.height - margin,
+        { align: 'center' }
+      );
+    }
+
+    // Save the PDF
+    doc.save(`${String(student.full_name)}-academic-profile.pdf`);
   };
 
   if (!student || !authUser) {
@@ -312,13 +451,15 @@ const StudentDashboard = () => {
       <div className="bg-white rounded-xl shadow-sm p-6">
         <h2 className="text-xl font-semibold mb-4">Achievements</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {student.achievements?.map((achievement, index) => (
-            <div key={index} className="p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-medium text-gray-800">{achievement.title}</h3>
-              <p className="text-gray-600 mt-1">{achievement.description}</p>
-              <p className="text-sm text-gray-500 mt-2">{achievement.date}</p>
-            </div>
-          )) || <p className="text-gray-500 col-span-2 text-center py-4">No achievements available</p>}
+          {student.achievements && student.achievements.length > 0 ? (
+            student.achievements.map((achievement, index) => (
+              <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                <p className="font-medium text-gray-800">{achievement}</p>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500 col-span-2 text-center py-4">No achievements available</p>
+          )}
         </div>
       </div>
     </div>
