@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setStudentData, clearStudentData } from '../../redux/studentSlice';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line } from 'recharts';
-import { Book, Award, Trophy, Clock, Download } from 'lucide-react';
+import { Book, Award, Trophy, Clock, Download, User, Phone, MapPin, GraduationCap, Calendar, Hash } from 'lucide-react';
 import { BASE_URL } from '../../main';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
@@ -34,13 +34,54 @@ const StudentDashboard = () => {
           withCredentials: true,
         });
 
+        console.log('Raw response data:', res.data);
+
         if (res.data) {
-          // Store the data with the user ID
+          console.log('Processing student data fields:', {
+            full_name: res.data.full_name,
+            registration_number: res.data.registration_number,
+            Department: res.data.Department,
+            current_semester: res.data.current_semester,
+            Mobile_No: res.data.Mobile_No,
+            Parent_No: res.data.Parent_No,
+            address: res.data.address,
+            gender: res.data.gender,
+            cgpa: res.data.cgpa,
+            sgpa: res.data.sgpa,
+            class_rank: res.data.class_rank,
+            attendance: res.data.attendance,
+            previous_cgpa: res.data.previous_cgpa,
+            previous_percentages: res.data.previous_percentages,
+            semesterProgress: res.data.semesterProgress,
+            attendanceData: res.data.attendanceData,
+            achievements: res.data.achievements,
+            photo_url: res.data.photo_url
+          });
+
           const studentData = {
             ...res.data,
-            _id: authUser._id // Ensure we use the auth user's ID
+            _id: authUser._id,
+            full_name: res.data.full_name ?? 'Not Available',
+            registration_number: res.data.registration_number ?? 'Not Available',
+            Department: res.data.Department ?? 'Not Available',
+            current_semester: res.data.current_semester ?? 'Not Available',
+            Mobile_No: res.data.Mobile_No ?? 'Not Available',
+            Parent_No: res.data.Parent_No ?? 'Not Available',
+            address: res.data.address ?? 'Not Available',
+            gender: res.data.gender ?? 'Not Available',
+            cgpa: res.data.cgpa ?? 0,
+            sgpa: res.data.sgpa ?? 0,
+            class_rank: res.data.class_rank ?? 0,
+            attendance: res.data.attendance ?? 0,
+            previous_cgpa: res.data.previous_cgpa ?? [],
+            previous_percentages: res.data.previous_percentages ?? [],
+            semesterProgress: res.data.semesterProgress ?? [],
+            attendanceData: res.data.attendanceData ?? [],
+            achievements: res.data.achievements ?? [],
+            photo_url: res.data.photo_url ?? 'https://via.placeholder.com/150'
           };
-          console.log('Setting student data:', studentData);
+
+          console.log('Processed student data:', studentData);
           dispatch(setStudentData(studentData));
         } else {
           console.error('No data received from server');
@@ -49,6 +90,7 @@ const StudentDashboard = () => {
         }
       } catch (error) {
         console.error('Error fetching student data:', error);
+        console.error('Error response:', error.response?.data);
         dispatch(clearStudentData());
         
         if (error.response?.status === 401) {
@@ -64,6 +106,10 @@ const StudentDashboard = () => {
 
     fetchStudentData();
   }, [authUser, dispatch, navigate]);
+
+  useEffect(() => {
+    console.log('Current student data in component:', student);
+  }, [student]);
 
   const generatePDF = () => {
     if (!student) {
@@ -106,13 +152,81 @@ const StudentDashboard = () => {
         </button>
       </div>
 
+      {/* Student Profile Section */}
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="flex items-start gap-6">
+          {/* Student Photo */}
+          <div className="flex-shrink-0">
+            <img
+              src={student.photo_url}
+              alt={student.full_name}
+              className="w-32 h-40 object-cover rounded-lg border-2 border-gray-200"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = 'https://via.placeholder.com/150';
+              }}
+            />
+          </div>
+          
+          {/* Student Details */}
+          <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <User className="w-5 h-5 text-gray-500" />
+                <span className="text-gray-600">Full Name:</span>
+                <span className="font-medium">{student.full_name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Hash className="w-5 h-5 text-gray-500" />
+                <span className="text-gray-600">Registration Number:</span>
+                <span className="font-medium">{student.registration_number}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-gray-500" />
+                <span className="text-gray-600">Department:</span>
+                <span className="font-medium">{student.Department}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-gray-500" />
+                <span className="text-gray-600">Current Semester:</span>
+                <span className="font-medium">{student.current_semester}</span>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Phone className="w-5 h-5 text-gray-500" />
+                <span className="text-gray-600">Mobile Number:</span>
+                <span className="font-medium">{student.Mobile_No}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="w-5 h-5 text-gray-500" />
+                <span className="text-gray-600">Parent&apos;s Number:</span>
+                <span className="font-medium">{student.Parent_No}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-gray-500" />
+                <span className="text-gray-600">Address:</span>
+                <span className="font-medium">{student.address}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <User className="w-5 h-5 text-gray-500" />
+                <span className="text-gray-600">Gender:</span>
+                <span className="font-medium">{student.gender}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Academic Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { icon: Book, label: 'Current CGPA', value: student.cgpa },
-          { icon: Book, label: 'Current SGPA', value: student.sgpa },
-          { icon: Award, label: 'Current Semester', value: student.current_semester },
-          { icon: Trophy, label: 'Class Rank', value: student.class_rank },
-          { icon: Clock, label: 'Attendance', value: `${student.attendance}%` },
+          { icon: Book, label: 'Current CGPA', value: student.cgpa || '0.00' },
+          { icon: Book, label: 'Current SGPA', value: student.sgpa || '0.00' },
+          { icon: Award, label: 'Current Semester', value: student.current_semester || 'Not Available' },
+          { icon: Trophy, label: 'Class Rank', value: student.class_rank || '0' },
+          { icon: Clock, label: 'Attendance', value: `${student.attendance || 0}%` },
         ].map((stat, index) => (
           <div key={index} className="bg-white p-6 rounded-xl shadow-sm flex items-center gap-4">
             <div className="p-3 bg-gray-100 rounded-lg">
@@ -126,33 +240,85 @@ const StudentDashboard = () => {
         ))}
       </div>
 
+      {/* Previous Academic Performance */}
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <h2 className="text-xl font-semibold mb-4">Previous Academic Performance</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="text-lg font-medium mb-2">Previous CGPA History</h3>
+            <div className="space-y-2">
+              {student.previous_cgpa?.map((cgpa, index) => (
+                <div key={index} className="flex justify-between items-center">
+                  <span className="text-gray-600">Semester {index + 1}</span>
+                  <span className="font-medium">{cgpa}</span>
+                </div>
+              )) || <p className="text-gray-500">No CGPA history available</p>}
+            </div>
+          </div>
+          <div>
+            <h3 className="text-lg font-medium mb-2">Previous Percentages</h3>
+            <div className="space-y-2">
+              {student.previous_percentages?.map((percentage, index) => (
+                <div key={index} className="flex justify-between items-center">
+                  <span className="text-gray-600">Semester {index + 1}</span>
+                  <span className="font-medium">{percentage}%</span>
+                </div>
+              )) || <p className="text-gray-500">No percentage history available</p>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm max-w-full overflow-hidden">
           <h2 className="text-lg font-semibold mb-4">Semester-wise Progress</h2>
           <div className="overflow-x-auto">
-            <BarChart width={400} height={300} data={student.semesterProgress}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="semester" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="percentage" fill="#3B82F6" name="Overall Percentage" />
-            </BarChart>
+            {student.semesterProgress?.length > 0 ? (
+              <BarChart width={400} height={300} data={student.semesterProgress}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="semester" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="percentage" fill="#3B82F6" name="Overall Percentage" />
+              </BarChart>
+            ) : (
+              <p className="text-gray-500 text-center py-4">No semester progress data available</p>
+            )}
           </div>
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm max-w-full overflow-hidden">
           <h2 className="text-lg font-semibold mb-4">Attendance Trend</h2>
           <div className="overflow-x-auto">
-            <LineChart width={500} height={300} data={student.attendanceData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="attendance" stroke="#3B82F6" name="Attendance %" />
-            </LineChart>
+            {student.attendanceData?.length > 0 ? (
+              <LineChart width={500} height={300} data={student.attendanceData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="attendance" stroke="#3B82F6" name="Attendance %" />
+              </LineChart>
+            ) : (
+              <p className="text-gray-500 text-center py-4">No attendance data available</p>
+            )}
           </div>
+        </div>
+      </div>
+
+      {/* Achievements */}
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <h2 className="text-xl font-semibold mb-4">Achievements</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {student.achievements?.map((achievement, index) => (
+            <div key={index} className="p-4 bg-gray-50 rounded-lg">
+              <h3 className="font-medium text-gray-800">{achievement.title}</h3>
+              <p className="text-gray-600 mt-1">{achievement.description}</p>
+              <p className="text-sm text-gray-500 mt-2">{achievement.date}</p>
+            </div>
+          )) || <p className="text-gray-500 col-span-2 text-center py-4">No achievements available</p>}
         </div>
       </div>
     </div>
