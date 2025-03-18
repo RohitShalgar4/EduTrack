@@ -12,7 +12,9 @@ const checkRole = (roles) => {
     return (req, res, next) => {
         console.log('Checking role access...', {
             userRole: req.role,
-            requiredRoles: roles
+            requiredRoles: roles,
+            userId: req.id,
+            department: req.department
         });
 
         // isAuthenticated middleware should be used before this middleware
@@ -24,12 +26,20 @@ const checkRole = (roles) => {
             });
         }
         
+        // Check if the user's role is in the list of allowed roles
         if (roles.includes(req.role)) {
-            console.log('Role check passed');
+            console.log('Role check passed:', {
+                userRole: req.role,
+                allowedRoles: roles
+            });
             return next();
         }
         
-        console.log('Role check failed. Access denied.');
+        console.log('Role check failed:', {
+            userRole: req.role,
+            requiredRoles: roles
+        });
+        
         return res.status(403).json({ 
             message: "Access denied. You don't have permission to access this resource.",
             error: `Required roles: ${roles.join(', ')}, User role: ${req.role}`
