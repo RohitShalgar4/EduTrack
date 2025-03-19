@@ -86,17 +86,6 @@ const Navbar = () => {
                 <div className="hidden md:flex items-center gap-6">
                     {isAuthenticated && authUser ? (
                         <div className="flex items-center gap-4">
-                            <Link to="/my-learning" className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                                My Learning
-                            </Link>
-                            <Link to="/profile" className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                                Edit Profile
-                            </Link>
-                            {role === 'instructor' && (
-                                <Link to="/admin/dashboard" className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                                    Dashboard
-                                </Link>
-                            )}
                             <button onClick={handleLogout} className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
                                 Log out
                             </button>
@@ -117,18 +106,6 @@ const Navbar = () => {
                     <div className="flex flex-col py-2">
                         {isAuthenticated && authUser ? (
                             <>
-                                <Link to="/my-learning" className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm">
-                                    My Learning
-                                </Link>
-                                <Link to="/profile" className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm">
-                                    Edit Profile
-                                </Link>
-                                {role === 'instructor' && (
-                                    <Link to="/admin/dashboard" className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm">
-                                        Dashboard
-                                    </Link>
-                                )}
-                                <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
                                 <button onClick={handleLogout} className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm text-red-500">
                                     Log out
                                 </button>
