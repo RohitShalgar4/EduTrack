@@ -34,6 +34,7 @@ const SuperAdminDashboard = () => {
   const [searchType, setSearchType] = useState('student');
   const [students, setStudents] = useState([]);
   const [teachers, setTeachers] = useState([]);
+  const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     students: 0,
@@ -95,6 +96,19 @@ const SuperAdminDashboard = () => {
           toast.error(teachersResponse.data.message || 'Failed to fetch teachers');
         }
 
+        // Fetch all admins
+        const adminsResponse = await axios.get(`${BASE_URL}/api/v1/admin/all`, {
+          withCredentials: true
+        });
+
+        if (adminsResponse.data.admins) {
+          setAdmins(adminsResponse.data.admins);
+          setStats(prev => ({ ...prev, admins: adminsResponse.data.admins.length }));
+        } else {
+          console.error('Failed to fetch admins:', adminsResponse.data);
+          toast.error('Failed to fetch admins');
+        }
+
       } catch (error) {
         console.error('Error fetching data:', {
           message: error.message,
@@ -122,10 +136,20 @@ const SuperAdminDashboard = () => {
         student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         student.registration_number.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : teachers.filter(teacher => 
+    : searchType === 'teacher'
+    ? teachers.filter(teacher => 
         teacher.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         teacher.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         teacher.department.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : admins.filter(admin => 
+        // Exclude the current super admin from search results
+        admin._id !== authUser._id && (
+          admin.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          admin.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          admin.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (admin.department && admin.department.toLowerCase().includes(searchQuery.toLowerCase()))
+        )
       );
 
   const statsData = [
@@ -165,7 +189,7 @@ const SuperAdminDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">Search {searchType === 'student' ? 'Students' : 'Teachers'}</h2>
+              <h2 className="text-xl font-bold">Search {searchType === 'student' ? 'Students' : searchType === 'teacher' ? 'Teachers' : 'Admins'}</h2>
               <div className="flex space-x-2">
                 <button
                   className={`px-4 py-2 rounded-lg text-sm font-medium ${
@@ -187,6 +211,16 @@ const SuperAdminDashboard = () => {
                 >
                   Teachers
                 </button>
+                <button
+                  className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                    searchType === 'admin'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  onClick={() => setSearchType('admin')}
+                >
+                  Admins
+                </button>
               </div>
             </div>
 
@@ -195,7 +229,9 @@ const SuperAdminDashboard = () => {
                 <input
                   type="text"
                   placeholder={`Search ${searchType}s by name, email, or ${
-                    searchType === 'student' ? 'registration number' : 'department'
+                    searchType === 'student' ? 'registration number' : 
+                    searchType === 'teacher' ? 'department' : 
+                    'role or department'
                   }...`}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={searchQuery}
@@ -205,7 +241,7 @@ const SuperAdminDashboard = () => {
               </div>
             </div>
 
-            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+            <div className="space-y-4 max-h-[200px] overflow-y-auto pr-2">
               {loading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
@@ -219,11 +255,19 @@ const SuperAdminDashboard = () => {
                       <p className="text-sm text-gray-600 mt-1">
                         {searchType === 'student' 
                           ? `Registration: ${result.registration_number} - ${result.Department}`
-                          : `${result.department} Department`}
+                          : searchType === 'teacher'
+                          ? `${result.department} Department`
+                          : `${result.role}${result.department ? ` - ${result.department}` : ''}`}
                       </p>
                     </div>
                     <button 
-                      onClick={() => navigate(`/student/${result._id}`)}
+                      onClick={() => {
+                        if (searchType === 'admin') {
+                          navigate(`/admin/${result._id}`);
+                        } else {
+                          navigate(`/student/${result._id}`);
+                        }
+                      }}
                       className="text-blue-500 hover:text-blue-700 text-sm font-medium"
                     >
                       View Details
