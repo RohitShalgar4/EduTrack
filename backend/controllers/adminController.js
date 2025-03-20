@@ -389,6 +389,7 @@ export const updateStudentDetails = async (req, res) => {
             'Mobile_No',
             'Parent_No',
             'previous_cgpa',
+            'achievements',
             'previous_percentages',
             'class_rank',
             'attendance',

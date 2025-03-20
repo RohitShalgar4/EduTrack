@@ -58,41 +58,64 @@ export const getAllTeachers = async (req, res) => {
 
 export const getTeacher = async (req, res) => {
     try {
-        const teacher = await Teacher.findById(req.params.id).select('-password');
+        const teacherId = req.params.teacherId;
+        const teacher = await Teacher.findById(teacherId).select('-password');
         if (!teacher) {
-            return res.status(404).json({ message: "Teacher not found" });
+            return res.status(404).json({ 
+              success: false,
+              message: "Teacher not found" 
+            });
         }
-        return res.status(200).json({ teacher });
+        return res.status(200).json({ 
+          success: true,
+          teacher 
+        });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: "Server error" });
+        return res.status(500).json({ 
+          success: false,
+          message: "Server error" 
+        });
     }
 };
 
 export const updateTeacher = async (req, res) => {
     try {
+        const teacherId = req.params.teacherId;
+        console.log("Updating teacher with ID:", teacherId);
+        console.log("Update data:", req.body);
+        
         const updates = { ...req.body };
-        if (updates.password) {
-            updates.password = await bcrypt.hash(updates.password, 10);
-        }
-
+        
+        // Remove fields that shouldn't be updated directly
+        delete updates.password;
+        
         const teacher = await Teacher.findByIdAndUpdate(
-            req.params.id,
+            teacherId,
             updates,
             { new: true }
         ).select('-password');
 
         if (!teacher) {
-            return res.status(404).json({ message: "Teacher not found" });
+            console.log("Teacher not found with ID:", teacherId);
+            return res.status(404).json({ 
+                success: false,
+                message: "Teacher not found" 
+            });
         }
 
+        console.log("Teacher updated successfully:", teacher.full_name);
         return res.status(200).json({
+            success: true,
             message: "Teacher updated successfully",
             teacher
         });
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Server error" });
+        console.error('Error in updateTeacher:', error);
+        return res.status(500).json({ 
+            success: false,
+            message: "Server error" 
+        });
     }
 };
 
@@ -308,17 +331,30 @@ export const updateTeacherPassword = async (req, res) => {
 
 export const getTeachersByDepartment = async (req, res) => {
   try {
-    const { department } = req.query;
+    console.log("User in getTeachersByDepartment:", req.user);
+    
+    // Get department from authenticated user
+    const department = req.user?.department;
+    console.log("Department from auth user:", department);
     
     if (!department) {
       return res.status(400).json({
         success: false,
-        message: "Department is required"
+        message: "Department information not found for current user"
       });
     }
 
-    const teachers = await Teacher.find({ Department: department })
-      .select('full_name email Department Mobile_No photo_url');
+    console.log("Fetching teachers for department:", department);
+    
+    // Use department property name that matches the model
+    const teachers = await Teacher.find({ department })
+      .select('-password')
+      .sort({ full_name: 1 });
+
+    console.log(`Found ${teachers.length} teachers in department ${department}:`);
+    teachers.forEach(t => {
+      console.log(`- ${t.full_name}, yearOfExperience: ${t.yearOfExperience}, id: ${t._id}`);
+    });
 
     res.status(200).json({
       success: true,
@@ -331,4 +367,30 @@ export const getTeachersByDepartment = async (req, res) => {
       message: "Error fetching teachers"
     });
   }
+};
+
+export const updateTeacherPhoto = async (req, res) => {
+    try {
+        const { teacherId } = req.params;
+        const photoUrl = req.body.photo_url;
+
+        const teacher = await Teacher.findByIdAndUpdate(
+            teacherId,
+            { photo_url: photoUrl },
+            { new: true }
+        ).select('-password');
+
+        if (!teacher) {
+            return res.status(404).json({ message: "Teacher not found" });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Teacher photo updated successfully",
+            photo_url: teacher.photo_url
+        });
+    } catch (error) {
+        console.error('Error in updateTeacherPhoto:', error);
+        return res.status(500).json({ message: "Server error" });
+    }
 }; 
