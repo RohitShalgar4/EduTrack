@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import StudentDashboard from './pages/student/StudentDashboard';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import StudentDetails from './pages/teacher/StudentDetails';
+import TeacherDetails from './pages/admin/TeacherDetails';
 import DepartmentAdminDashboard from './pages/admin/DepartmentAdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import UpdatePasswordPopup from './components/UpdatePasswordPopup';
@@ -40,11 +41,6 @@ function App() {
               <TeacherDashboard />
             </ProtectedRoute>
           } />
-          <Route path="/student/:studentId" element={
-            <ProtectedRoute allowedRoles={['teacher', 'department_admin']}>
-              <StudentDetails />
-            </ProtectedRoute>
-          } />
 
           {/* Admin Routes */}
           <Route path="/admin/dashboard" element={
@@ -55,6 +51,18 @@ function App() {
           <Route path="/department-admin/dashboard" element={
             <ProtectedRoute allowedRoles={['department_admin']}>
               <DepartmentAdminDashboard />
+            </ProtectedRoute>
+          } />
+
+          {/* Details Routes */}
+          <Route path="/student/:studentId" element={
+            <ProtectedRoute allowedRoles={['super_admin', 'department_admin', 'teacher']}>
+              <StudentDetails />
+            </ProtectedRoute>
+          } />
+          <Route path="/teacher/:teacherId" element={
+            <ProtectedRoute allowedRoles={['super_admin', 'department_admin']}>
+              <TeacherDetails />
             </ProtectedRoute>
           } />
         </Route>
