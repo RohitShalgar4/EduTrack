@@ -14,6 +14,11 @@ import {
 } from "../controllers/adminController.js";
 import isAuthenticated from "../middleware/isAuthenticated.js";
 import checkRole from "../middleware/checkRole.js";
+import {
+  getTeacher,
+  updateTeacher,
+  updateTeacherPhoto
+} from "../controllers/teacherController.js";
 
 const router = express.Router();
 
@@ -35,7 +40,24 @@ router.get("/all/teachers", isAuthenticated, checkRole("super_admin"), getAllTea
 router.get("/department/students", isAuthenticated, checkRole("department_admin"), getStudentsByDepartment);
 router.get("/department/teachers", isAuthenticated, checkRole("department_admin"), getTeachersByDepartment);
 
+// Update teacher in department
+router.put("/department/teachers/:teacherId", isAuthenticated, checkRole("department_admin"), updateTeacher);
+
+// Update teacher photo in department
+router.post("/department/teachers/:teacherId/photo", isAuthenticated, checkRole("department_admin"), updateTeacherPhoto);
+
 // Department admin route for updating student details
 router.put("/student/:studentId", isAuthenticated, checkRole("department_admin"), updateStudentDetails);
+
+// Get single teacher details
+router.get("/teacher/:teacherId", isAuthenticated, checkRole(["super_admin", "department_admin"]), getTeacher);
+
+// Update teacher details
+router.put("/department/teachers/:teacherId", isAuthenticated, checkRole(["department_admin"]), updateTeacher);
+router.put("/teacher/:teacherId", isAuthenticated, checkRole(["super_admin", "department_admin"]), updateTeacher);
+
+// Update teacher photo
+router.post("/department/teachers/:teacherId/photo", isAuthenticated, checkRole(["department_admin"]), updateTeacherPhoto);
+router.post("/teacher/:teacherId/photo", isAuthenticated, checkRole(["super_admin", "department_admin"]), updateTeacherPhoto);
 
 export default router; 
