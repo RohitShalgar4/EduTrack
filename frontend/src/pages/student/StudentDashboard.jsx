@@ -414,14 +414,14 @@ const StudentDashboard = () => {
           <h2 className="text-lg font-semibold mb-4">Semester-wise Progress</h2>
           <div className="overflow-x-auto">
             {student.semesterProgress?.length > 0 ? (
-              <BarChart width={400} height={300} data={student.semesterProgress}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="semester" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="percentage" fill="#3B82F6" name="Overall Percentage" />
-              </BarChart>
+            <BarChart width={400} height={300} data={student.semesterProgress}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="semester" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="percentage" fill="#3B82F6" name="Overall Percentage" />
+            </BarChart>
             ) : (
               <p className="text-gray-500 text-center py-4">No semester progress data available</p>
             )}
@@ -432,14 +432,14 @@ const StudentDashboard = () => {
           <h2 className="text-lg font-semibold mb-4">Attendance Trend</h2>
           <div className="overflow-x-auto">
             {student.attendanceData?.length > 0 ? (
-              <LineChart width={500} height={300} data={student.attendanceData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="attendance" stroke="#3B82F6" name="Attendance %" />
-              </LineChart>
+            <LineChart width={500} height={300} data={student.attendanceData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="attendance" stroke="#3B82F6" name="Attendance %" />
+            </LineChart>
             ) : (
               <p className="text-gray-500 text-center py-4">No attendance data available</p>
             )}
