@@ -281,7 +281,13 @@ const DepartmentAdminDashboard = () => {
                       </p>
                     </div>
                     <button 
-                      onClick={() => navigate(`/student/${result._id}`)}
+                      onClick={() => {
+                        if (searchType === 'teacher') {
+                          navigate(`/teacher/${result._id}`);
+                        } else {
+                          navigate(`/student/${result._id}`);
+                        }
+                      }}
                       className="text-blue-500 hover:text-blue-700 text-sm font-medium"
                     >
                       View Details
