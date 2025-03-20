@@ -67,7 +67,7 @@ const TeacherDashboard = () => {
     <div className="w-full h-full overflow-auto py-6 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mt-8 text-gray-800">Welcome back, {authUser.fullName}!</h1>
+          <h1 className="text-3xl font-bold mt-8 text-gray-800">Welcome back, {authUser.full_name}!</h1>
           <p className="text-gray-600 mt-2">Manage your students and view their progress</p>
         </div>
 
