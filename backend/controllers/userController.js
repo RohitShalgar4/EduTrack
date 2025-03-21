@@ -7,34 +7,43 @@ import { Teacher } from "../models/teacherModel.js";
 export const register = async (req, res) => {
     try {
         const { 
-            full_name, email, password, confirmPassword, Mobile_No, Parent_No, address, registration_number, 
+            full_name, email, password, Mobile_No, Parent_No, address, registration_number, 
             Department, class: userClass, abc_id, previous_cgpa, previous_percentages, current_semester, class_rank, 
             attendance, semesterProgress, photo_url, achievements, gender 
         } = req.body;
         
         // Ensure all required fields are included in the request
-        if (!full_name || !email || !password || !confirmPassword || !Mobile_No || !Parent_No || !address || 
-            !registration_number || !Department || !userClass || !abc_id || !previous_cgpa || !previous_percentages || 
-            !current_semester || !class_rank || !attendance || !photo_url || !achievements || !gender) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
-        
-        // Check if passwords match
-        if (password !== confirmPassword) {
-            return res.status(400).json({ message: "Passwords do not match" });
+        if (!full_name || !email || !password || !Mobile_No || !Parent_No || !address || 
+            !registration_number || !Department || !userClass || !abc_id || !gender) {
+            return res.status(400).json({ 
+                success: false,
+                message: "Please fill all required fields" 
+            });
         }
         
         // Check if email already exists
-        const user = await User.findOne({ email });
-        if (user) {
-            return res.status(400).json({ message: "Email already exists, try a different one" });
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({
+                success: false, 
+                message: "Email already exists, try a different one" 
+            });
+        }
+
+        // Check if registration number already exists
+        const existingRegistration = await User.findOne({ registration_number });
+        if (existingRegistration) {
+            return res.status(400).json({
+                success: false,
+                message: "Registration number already exists"
+            });
         }
         
         // Hash the password before saving it
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Create the new user with the updated fields
-        await User.create({
+        const newUser = await User.create({
             full_name,
             email,
             password: hashedPassword,
@@ -45,24 +54,28 @@ export const register = async (req, res) => {
             Department,
             class: userClass,
             abc_id,
-            previous_cgpa,
-            previous_percentages,
-            current_semester,
-            class_rank,
-            attendance,
-            semesterProgress,
-            photo_url,
-            achievements,
-            gender
+            previous_cgpa: previous_cgpa || [0],
+            previous_percentages: previous_percentages || [0],
+            current_semester: current_semester || 1,
+            class_rank: class_rank || 0,
+            attendance: attendance || [],
+            semesterProgress: semesterProgress || [],
+            photo_url: photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(full_name)}&background=random`,
+            achievements: achievements || [],
+            gender,
+            isFirstLogin: true
         });
         
         return res.status(201).json({
-            message: "Account created successfully.",
-            success: true
+            success: true,
+            message: "Account created successfully"
         });
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({ message: "Server error" });
+        console.error("Registration error:", error);
+        return res.status(500).json({ 
+            success: false,
+            message: "Internal server error" 
+        });
     }
 };
 

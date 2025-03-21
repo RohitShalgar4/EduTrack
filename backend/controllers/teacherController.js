@@ -393,4 +393,42 @@ export const updateTeacherPhoto = async (req, res) => {
         console.error('Error in updateTeacherPhoto:', error);
         return res.status(500).json({ message: "Server error" });
     }
+};
+
+// Verify teacher authentication
+export const verifyTeacher = async (req, res) => {
+    try {
+        const teacherId = req.id;
+        if (!teacherId) {
+            return res.status(401).json({
+                success: false,
+                message: "Teacher not authenticated"
+            });
+        }
+
+        const teacher = await Teacher.findById(teacherId).select('-password');
+        if (!teacher) {
+            return res.status(404).json({
+                success: false,
+                message: "Teacher not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Teacher verified successfully",
+            teacher: {
+                _id: teacher._id,
+                full_name: teacher.full_name,
+                email: teacher.email,
+                department: teacher.department
+            }
+        });
+    } catch (error) {
+        console.error('Error in verifyTeacher:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
 }; 
