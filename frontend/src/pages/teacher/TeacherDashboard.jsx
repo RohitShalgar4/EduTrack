@@ -13,34 +13,49 @@ const TeacherDashboard = () => {
 
   const fetchStudents = async () => {
     try {
-      const response = await axios.get(`${BASE_URL}/api/v1/teacher/students`, {
+      const response = await axios.get(`${BASE_URL}/api/v1/teacher/students/all`, {
         withCredentials: true
       });
-      setStudents(response.data);
+      
+      // Check if response.data has the correct structure
+      if (response.data && response.data.success && Array.isArray(response.data.students)) {
+        setStudents(response.data.students);
+      } else {
+        console.error('Invalid response structure:', response.data);
+        toast.error('Invalid response format from server');
+        setStudents([]);
+      }
       setLoading(false);
     } catch (error) {
       console.error('Error fetching students:', error);
       toast.error(error.response?.data?.message || 'Error fetching students');
+      setStudents([]);
       setLoading(false);
     }
   };
 
   // Initial fetch
   useEffect(() => {
+    if (!authUser) {
+      navigate('/login');
+      return;
+    }
     fetchStudents();
-  }, []);
+  }, [authUser, navigate]);
 
   // Set up polling for real-time updates
   useEffect(() => {
+    if (!authUser) return;
+    
     const pollInterval = setInterval(() => {
       fetchStudents();
     }, 30000); // Poll every 30 seconds
 
     return () => clearInterval(pollInterval);
-  }, []);
+  }, [authUser]);
 
   const handleViewDetails = (studentId) => {
-    navigate(`/teacher/student/${studentId}`);
+    navigate(`/student/${studentId}`);
   };
 
   if (loading) {
@@ -57,7 +72,7 @@ const TeacherDashboard = () => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-800">Teacher Dashboard</h1>
           <div className="text-gray-600">
-            Welcome, {authUser?.full_name || 'Teacher'}
+            Welcome, {authUser?.fullName || 'Teacher'}
           </div>
         </div>
 
@@ -73,7 +88,7 @@ const TeacherDashboard = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {students.map((student) => (
+              {Array.isArray(students) && students.map((student) => (
                 <tr key={student._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -112,7 +127,7 @@ const TeacherDashboard = () => {
           </table>
         </div>
 
-        {students.length === 0 && (
+        {(!Array.isArray(students) || students.length === 0) && (
           <div className="text-center py-8">
             <p className="text-gray-500">No students found.</p>
           </div>
