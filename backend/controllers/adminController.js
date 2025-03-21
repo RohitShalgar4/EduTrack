@@ -423,4 +423,69 @@ export const updateStudentDetails = async (req, res) => {
             error: error.message 
         });
     }
-}; 
+};
+
+// Get admin details by ID
+export const getAdminDetails = async (req, res) => {
+    try {
+        const { adminId } = req.params;
+        
+        const admin = await Admin.findById(adminId).select('-password');
+        
+        if (!admin) {
+            return res.status(404).json({ message: 'Admin not found' });
+        }
+
+        res.status(200).json(admin);
+    } catch (error) {
+        console.error('Error fetching admin details:', error);
+        res.status(500).json({ message: 'Error fetching admin details' });
+    }
+};
+
+// Update admin details
+export const updateAdminDetails = async (req, res) => {
+    try {
+        const { adminId } = req.params;
+        const updates = req.body;
+        
+        // Remove sensitive fields that shouldn't be updated directly
+        delete updates.password;
+        delete updates.role;
+        
+        const admin = await Admin.findById(adminId);
+        if (!admin) {
+            return res.status(404).json({ message: 'Admin not found' });
+        }
+
+        // Update admin details
+        Object.keys(updates).forEach(key => {
+            admin[key] = updates[key];
+        });
+
+        await admin.save();
+        
+        // Return updated admin without password
+        const updatedAdmin = await Admin.findById(adminId).select('-password');
+        res.status(200).json(updatedAdmin);
+    } catch (error) {
+        console.error('Error updating admin details:', error);
+        res.status(500).json({ message: 'Error updating admin details' });
+    }
+};
+
+// module.exports = {
+//     addAdmin,
+//     getAllAdmins,
+//     getAdmin,
+//     updateAdmin,
+//     deleteAdmin,
+//     updateAdminPassword,
+//     getAllStudents,
+//     getAllTeachers,
+//     getStudentsByDepartment,
+//     getTeachersByDepartment,
+//     updateStudentDetails,
+//     getAdminDetails,
+//     updateAdminDetails
+// }; 

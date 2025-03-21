@@ -10,7 +10,9 @@ import {
     getTeachersByDepartment,
     getAllStudents,  // New function for super admin
     getAllTeachers,   // New function for super admin
-    updateStudentDetails
+    updateStudentDetails,
+    getAdminDetails,
+    updateAdminDetails
 } from "../controllers/adminController.js";
 import isAuthenticated from "../middleware/isAuthenticated.js";
 import checkRole from "../middleware/checkRole.js";
@@ -52,6 +54,9 @@ router.put("/student/:studentId", isAuthenticated, checkRole("department_admin")
 // Get single teacher details
 router.get("/teacher/:teacherId", isAuthenticated, checkRole(["super_admin", "department_admin"]), getTeacher);
 
+// Get single teacher details
+router.get("/:adminId", isAuthenticated, checkRole(["super_admin"]), getAdminDetails);
+
 // Update teacher details
 router.put("/department/teachers/:teacherId", isAuthenticated, checkRole(["department_admin"]), updateTeacher);
 router.put("/teacher/:teacherId", isAuthenticated, checkRole(["super_admin", "department_admin"]), updateTeacher);
@@ -59,5 +64,9 @@ router.put("/teacher/:teacherId", isAuthenticated, checkRole(["super_admin", "de
 // Update teacher photo
 router.post("/department/teachers/:teacherId/photo", isAuthenticated, checkRole(["department_admin"]), updateTeacherPhoto);
 router.post("/teacher/:teacherId/photo", isAuthenticated, checkRole(["super_admin", "department_admin"]), updateTeacherPhoto);
+
+// Admin details routes (super_admin only)
+router.get('/admin/:adminId', isAuthenticated, checkRole("super_admin"), getAdminDetails);
+router.put('/admin/:adminId', isAuthenticated, checkRole("super_admin"), updateAdminDetails);
 
 export default router; 
