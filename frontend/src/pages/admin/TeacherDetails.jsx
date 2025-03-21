@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { BASE_URL } from '../../main';
 import toast from 'react-hot-toast';
-import { Camera } from 'lucide-react';
+import { Camera, ArrowLeft, Save, Edit, X } from 'lucide-react';
 
 const TeacherDetails = () => {
   const { teacherId } = useParams();
@@ -212,23 +212,37 @@ const TeacherDetails = () => {
     }
   };
 
+  const getDepartmentFullName = (code) => {
+    const departments = {
+      'CSE': 'Computer Science and Engineering',
+      'ENTC': 'Electronics and Telecommunication',
+      'MECH': 'Mechanical Engineering',
+      'CIVIL': 'Civil Engineering',
+      'ELE': 'Electrical Engineering'
+    };
+    return departments[code] || code;
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600"></div>
       </div>
     );
   }
 
   if (!teacher) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800">Teacher not found</h2>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-md">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h2 className="text-3xl font-bold text-gray-800 mb-2">Teacher Not Found</h2>
+          <p className="text-gray-600 mb-6">The teacher you're looking for doesn't exist or has been removed.</p>
           <button
             onClick={() => navigate(-1)}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            className="flex items-center justify-center mx-auto px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           >
+            <ArrowLeft className="mr-2" size={18} />
             Go Back
           </button>
         </div>
@@ -237,161 +251,215 @@ const TeacherDetails = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-800">Teacher Details</h1>
-            <div className="space-x-2">
-              {!isEditing ? (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                >
-                  Edit Details
-                </button>
-              ) : (
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Debug Info */}
-          <div className="bg-gray-100 p-3 mb-6 rounded text-xs">
-            <p>Teacher data from DB: ID: {teacher._id}</p>
-            <p>Full Name: {teacher.full_name}</p>
-            <p>Email: {teacher.email}</p>
-            <p>Department: {teacher.department}</p>
-            <p>Qualification: {teacher.qualification}</p>
-            <p>Years of Experience: {teacher.yearOfExperience}</p>
-            <p>Photo URL: {teacher.photo_url}</p>
-          </div>
-
-          <form onSubmit={handleSubmit}>
-            <div className="mb-6">
-              <div className="relative w-32 h-32 mx-auto mb-4">
-                <img
-                  src={formData.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.full_name || 'Teacher')}`}
-                  alt="Teacher profile"
-                  className="w-full h-full rounded-full object-cover"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.full_name || 'Teacher')}`;
-                  }}
-                />
-                {isEditing && (
-                  <label className="absolute bottom-0 right-0 bg-blue-500 p-2 rounded-full cursor-pointer hover:bg-blue-600">
-                    <Camera size={20} className="text-white" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handlePhotoChange}
-                    />
-                  </label>
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white py-12 px-4">
+      <div className="max-w-5xl mx-auto">
+        {/* Back button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center text-indigo-600 hover:text-indigo-800 transition-colors mb-6"
+        >
+          <ArrowLeft size={20} className="mr-2" />
+          <span>Back to Teachers</span>
+        </button>
+        
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          {/* Header with gradient background */}
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6 text-white">
+            <div className="flex justify-between items-center">
+              <h1 className="text-3xl font-bold">Faculty Profile</h1>
+              <div>
+                {!isEditing ? (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center space-x-2 bg-white text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-50 transition-colors"
+                  >
+                    <Edit size={18} />
+                    <span>Edit Profile</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="flex items-center space-x-2 bg-white text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <X size={18} />
+                    <span>Cancel</span>
+                  </button>
                 )}
               </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  name="full_name"
-                  value={formData.full_name}
-                  onChange={handleInputChange}
-                  disabled={!isEditing}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+          </div>
+          
+          <form onSubmit={handleSubmit} className="p-8">
+            <div className="flex flex-col md:flex-row gap-8">
+              {/* Left column - Photo */}
+              <div className="md:w-1/3 flex flex-col items-center">
+                <div className="relative group">
+                  <div className={`w-48 h-48 rounded-full overflow-hidden border-4 ${isEditing ? 'border-indigo-400' : 'border-gray-200'} shadow-lg`}>
+                    <img
+                      src={formData.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.full_name || 'Teacher')}&size=200&background=8B5CF6&color=fff`}
+                      alt="Teacher profile"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.full_name || 'Teacher')}&size=200&background=8B5CF6&color=fff`;
+                      }}
+                    />
+                  </div>
+                  {isEditing && (
+                    <label className="absolute bottom-3 right-3 bg-indigo-600 p-3 rounded-full cursor-pointer hover:bg-indigo-700 shadow-md transition-all transform hover:scale-110">
+                      <Camera size={24} className="text-white" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handlePhotoChange}
+                      />
+                    </label>
+                  )}
+                </div>
+                
+                {/* Department badge */}
+                <div className="mt-6 bg-indigo-100 text-indigo-800 py-2 px-6 rounded-full font-medium text-center">
+                  {getDepartmentFullName(formData.department) || 'Department Not Set'}
+                </div>
+                
+                {/* Experience badge */}
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  <div className="bg-amber-100 text-amber-800 py-1 px-4 rounded-full text-sm font-medium">
+                    {formData.yearOfExperience} {formData.yearOfExperience === 1 ? 'Year' : 'Years'} Experience
+                  </div>
+                </div>
               </div>
+              
+              {/* Right column - Form fields */}
+              <div className="md:w-2/3">
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      name="full_name"
+                      value={formData.full_name}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
+                      className={`w-full px-4 py-3 rounded-lg border ${
+                        isEditing 
+                          ? 'border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200' 
+                          : 'border-gray-200 bg-gray-50'
+                      } transition-colors`}
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  disabled={!isEditing}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
+                      className={`w-full px-4 py-3 rounded-lg border ${
+                        isEditing 
+                          ? 'border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200' 
+                          : 'border-gray-200 bg-gray-50'
+                      } transition-colors`}
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Department
-                </label>
-                <select
-                  name="department"
-                  value={formData.department}
-                  onChange={handleInputChange}
-                  disabled={!isEditing}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select Department</option>
-                  <option value="CSE">Computer Science and Engineering</option>
-                  <option value="ENTC">Electronics and Telecommunication</option>
-                  <option value="MECH">Mechanical Engineering</option>
-                  <option value="CIVIL">Civil Engineering</option>
-                  <option value="ELE">Electrical Engineering</option>
-                </select>
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Department
+                      </label>
+                      <select
+                        name="department"
+                        value={formData.department}
+                        onChange={handleInputChange}
+                        disabled={!isEditing}
+                        className={`w-full px-4 py-3 rounded-lg border ${
+                          isEditing 
+                            ? 'border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200' 
+                            : 'border-gray-200 bg-gray-50'
+                        } transition-colors`}
+                      >
+                        <option value="">Select Department</option>
+                        <option value="CSE">Computer Science and Engineering</option>
+                        <option value="ENTC">Electronics and Telecommunication</option>
+                        <option value="MECH">Mechanical Engineering</option>
+                        <option value="CIVIL">Civil Engineering</option>
+                        <option value="ELE">Electrical Engineering</option>
+                      </select>
+                    </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Qualification
-                </label>
-                <input
-                  type="text"
-                  name="qualification"
-                  value={formData.qualification}
-                  onChange={handleInputChange}
-                  disabled={!isEditing}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Years of Experience
+                      </label>
+                      <input
+                        type="number"
+                        name="yearOfExperience"
+                        value={formData.yearOfExperience}
+                        onChange={handleInputChange}
+                        min="0"
+                        step="1"
+                        disabled={!isEditing}
+                        className={`w-full px-4 py-3 rounded-lg border ${
+                          isEditing 
+                            ? 'border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200' 
+                            : 'border-gray-200 bg-gray-50'
+                        } transition-colors`}
+                      />
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Years of Experience
-                </label>
-                <input
-                  type="number"
-                  name="yearOfExperience"
-                  value={formData.yearOfExperience}
-                  onChange={handleInputChange}
-                  min="0"
-                  step="1"
-                  disabled={!isEditing}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">Current value in database: {teacher.yearOfExperience}</p>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Qualification
+                    </label>
+                    <input
+                      type="text"
+                      name="qualification"
+                      value={formData.qualification}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
+                      className={`w-full px-4 py-3 rounded-lg border ${
+                        isEditing 
+                          ? 'border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200' 
+                          : 'border-gray-200 bg-gray-50'
+                      } transition-colors`}
+                    />
+                  </div>
+                </div>
+
+                {isEditing && (
+                  <div className="mt-8">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className={`w-full flex items-center justify-center py-3 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transition-colors ${
+                        saving ? 'opacity-70 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {saving ? (
+                        <>
+                          <div className="animate-spin h-5 w-5 mr-3 border-2 border-white border-t-transparent rounded-full"></div>
+                          Saving Changes...
+                        </>
+                      ) : (
+                        <>
+                          <Save size={20} className="mr-2" />
+                          Save Changes
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
-
-            {isEditing && (
-              <div className="mt-6 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className={`px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 ${
-                    saving ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            )}
           </form>
         </div>
       </div>
@@ -399,4 +467,4 @@ const TeacherDetails = () => {
   );
 };
 
-export default TeacherDetails; 
+export default TeacherDetails;

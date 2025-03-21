@@ -264,7 +264,11 @@ const SuperAdminDashboard = () => {
                       onClick={() => {
                         if (searchType === 'admin') {
                           navigate(`/admin/${result._id}`);
-                        } else {
+                        } 
+                        else if (searchType === 'teacher') {
+                          navigate(`/teacher/${result._id}`);
+                        }
+                        else {
                           navigate(`/student/${result._id}`);
                         }
                       }}

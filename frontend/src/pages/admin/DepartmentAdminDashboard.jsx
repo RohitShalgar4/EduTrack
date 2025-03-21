@@ -36,20 +36,19 @@ const DepartmentAdminDashboard = () => {
   const [stats, setStats] = useState({
     students: 0,
     teachers: 0,
-    courses: 12, // This could be made dynamic later
-    performance: 78 // This could be made dynamic later
+    courses: 12,
+    performance: 78
   });
   
-  // Get the authenticated user's data from Redux
   const authUser = useSelector((state) => state.user.authUser);
   
-  console.log("DepartmentAdminDashboard - Auth User:", {
+  console.log("[DepartmentAdminDashboard] Initial Render - Auth User:", {
     hasUser: Boolean(authUser),
     role: authUser?.role,
     department: authUser?.department,
     fullData: authUser
   });
-  
+
   // Department mapping
   const departmentFullNames = {
     'CSE': 'Computer Science and Engineering',
@@ -59,124 +58,115 @@ const DepartmentAdminDashboard = () => {
     'ELE': 'Electrical Engineering'
   };
 
-  // Get the full department name
   const getDepartmentFullName = (dept) => {
-    console.log("Getting department name for:", dept); // Debug log
+    console.log("[DepartmentAdminDashboard] Getting department name for:", dept);
     if (!dept) {
-      console.log("No department provided"); // Debug log
+      console.log("[DepartmentAdminDashboard] No department provided");
       return 'Loading...';
     }
     const upperDept = dept.toUpperCase();
     const fullName = departmentFullNames[upperDept];
-    console.log("Mapped to full name:", fullName); // Debug log
+    console.log("[DepartmentAdminDashboard] Mapped department name:", fullName);
     return fullName || `${dept} Department`;
   };
 
   const departmentName = getDepartmentFullName(authUser?.department);
-  console.log("Final Department Name:", departmentName); // Debug log
+  console.log("[DepartmentAdminDashboard] Final Department Name:", departmentName);
 
+  const fetchDashboardData = async () => {
+    console.log("[DepartmentAdminDashboard] Starting data fetch...");
+    try {
+      if (!authUser?.department) {
+        console.error('[DepartmentAdminDashboard] No department found in auth user data');
+        toast.error('Department information missing');
+        return;
+      }
+
+      console.log('[DepartmentAdminDashboard] Fetching students data...');
+      const studentsResponse = await axios.get(`${BASE_URL}/api/v1/admin/department/students`, {
+        withCredentials: true
+      });
+      console.log('[DepartmentAdminDashboard] Students Response:', {
+        status: studentsResponse.status,
+        count: studentsResponse.data.students?.length,
+        data: studentsResponse.data
+      });
+
+      if (studentsResponse.data.success) {
+        setStudents(studentsResponse.data.students);
+        setStats(prev => ({ ...prev, students: studentsResponse.data.students.length }));
+        console.log('[DepartmentAdminDashboard] Updated students count:', studentsResponse.data.students.length);
+      }
+
+      console.log('[DepartmentAdminDashboard] Fetching teachers data...');
+      const teachersResponse = await axios.get(`${BASE_URL}/api/v1/admin/department/teachers`, {
+        withCredentials: true
+      });
+      console.log('[DepartmentAdminDashboard] Teachers Response:', {
+        status: teachersResponse.status,
+        count: teachersResponse.data.teachers?.length,
+        data: teachersResponse.data
+      });
+
+      if (teachersResponse.data.success) {
+        setTeachers(teachersResponse.data.teachers);
+        setStats(prev => ({ ...prev, teachers: teachersResponse.data.teachers.length }));
+        console.log('[DepartmentAdminDashboard] Updated teachers count:', teachersResponse.data.teachers.length);
+      }
+
+    } catch (error) {
+      console.error('[DepartmentAdminDashboard] Error fetching data:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please login again');
+        navigate('/login');
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to fetch data');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch
   useEffect(() => {
-    // Check if user is authenticated and is a department admin
+    console.log('[DepartmentAdminDashboard] Initial useEffect triggered');
+    
     if (!authUser || authUser.role !== 'department_admin') {
-      console.log('DepartmentAdminDashboard - Unauthorized access, redirecting to login');
+      console.log('[DepartmentAdminDashboard] Unauthorized access, redirecting to login');
       navigate('/login');
       return;
     }
 
-    const fetchData = async () => {
-      try {
-        console.log('Auth State:', {
-          hasDepartment: Boolean(authUser?.department),
-          department: authUser?.department,
-          role: authUser?.role
-        });
-        
-        if (!authUser?.department) {
-          console.error('No department found');
-          toast.error('Department information missing');
-          return;
-        }
+    fetchDashboardData();
+  }, [authUser, navigate]);
 
-        console.log('Fetching data with department:', authUser.department);
-        
-        // Fetch students
-        console.log('Making request to:', `${BASE_URL}/api/v1/admin/department/students`);
-        const studentsResponse = await axios.get(`${BASE_URL}/api/v1/admin/department/students`, {
-          withCredentials: true
-        });
+  // Set up polling for real-time updates
+  useEffect(() => {
+    console.log('[DepartmentAdminDashboard] Setting up polling interval');
+    const pollInterval = setInterval(() => {
+      console.log('[DepartmentAdminDashboard] Polling for fresh data...');
+      fetchDashboardData();
+    }, 30000); // Poll every 30 seconds
 
-        console.log('Students API Response:', {
-          status: studentsResponse.status,
-          success: studentsResponse.data.success,
-          count: studentsResponse.data.students?.length,
-          data: studentsResponse.data,
-          headers: studentsResponse.headers,
-          config: {
-            url: studentsResponse.config.url,
-            method: studentsResponse.config.method,
-            headers: studentsResponse.config.headers
-          }
-        });
-
-        if (studentsResponse.data.success) {
-          console.log('Setting students state with:', studentsResponse.data.students);
-          setStudents(studentsResponse.data.students);
-          setStats(prev => ({ ...prev, students: studentsResponse.data.students.length }));
-          console.log('Updated students state:', studentsResponse.data.students.length);
-        } else {
-          console.error('Failed to fetch students:', studentsResponse.data);
-          toast.error(studentsResponse.data.message || 'Failed to fetch students');
-        }
-
-        // Fetch teachers
-        const teachersResponse = await axios.get(`${BASE_URL}/api/v1/admin/department/teachers`, {
-          withCredentials: true
-        });
-
-        console.log('Teachers API Response:', {
-          status: teachersResponse.status,
-          success: teachersResponse.data.success,
-          count: teachersResponse.data.teachers?.length,
-          data: teachersResponse.data
-        });
-
-        if (teachersResponse.data.success) {
-          setTeachers(teachersResponse.data.teachers);
-          setStats(prev => ({ ...prev, teachers: teachersResponse.data.teachers.length }));
-          console.log('Updated teachers state:', teachersResponse.data.teachers.length);
-        }
-
-      } catch (error) {
-        console.error('Error fetching data:', {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status
-        });
-        
-        if (error.response?.status === 401) {
-          toast.error('Session expired. Please login again');
-          navigate('/login');
-        } else {
-          toast.error(error.response?.data?.message || 'Failed to fetch data');
-        }
-      } finally {
-        setLoading(false);
-      }
+    return () => {
+      console.log('[DepartmentAdminDashboard] Cleaning up polling interval');
+      clearInterval(pollInterval);
     };
+  }, [authUser?.department]);
 
-    if (authUser?.department) {
-      console.log('Starting data fetch with:', {
-        department: authUser.department
-      });
-      fetchData();
-    } else {
-      console.log('Waiting for auth data:', { 
-        hasDepartment: Boolean(authUser?.department),
-        authUser: authUser
-      });
-      setLoading(false);
-    }
-  }, [authUser?.department, navigate]);
+  // Log when search results change
+  useEffect(() => {
+    console.log('[DepartmentAdminDashboard] Search Results Updated:', {
+      type: searchType,
+      query: searchQuery,
+      resultsCount: filteredResults.length
+    });
+  }, [searchQuery, searchType, students, teachers]);
 
   const filteredResults = searchType === 'student' 
     ? students.filter(student => 
@@ -204,7 +194,7 @@ const DepartmentAdminDashboard = () => {
 
       <div className="max-w-9xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mt-8 text-gray-800">Welcome back, Department Admin!</h1>
+          <h1 className="text-3xl font-bold mt-8 text-gray-800">Welcome back, Department Admin : {authUser?.fullName}!</h1>
           <p className="text-gray-600 mt-2">Managing: {departmentName}</p>
         </div>
 

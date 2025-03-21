@@ -13,6 +13,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import UpdatePasswordPopup from './components/UpdatePasswordPopup';
 import SuperAdminDashboard from './pages/admin/SuperAdminDashboard';
 import MainLayout from './components/Layout';
+import AdminDetails from './pages/admin/AdminDetails';
 
 function App() {
   return (
@@ -63,6 +64,11 @@ function App() {
           <Route path="/teacher/:teacherId" element={
             <ProtectedRoute allowedRoles={['super_admin', 'department_admin']}>
               <TeacherDetails />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/:adminId" element={
+            <ProtectedRoute allowedRoles={['super_admin']}>
+              <AdminDetails />
             </ProtectedRoute>
           } />
         </Route>
