@@ -414,14 +414,37 @@ const StudentDashboard = () => {
           <h2 className="text-lg font-semibold mb-4">Semester-wise Progress</h2>
           <div className="overflow-x-auto">
             {student.semesterProgress?.length > 0 ? (
-            <BarChart width={400} height={300} data={student.semesterProgress}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="semester" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="percentage" fill="#3B82F6" name="Overall Percentage" />
-            </BarChart>
+              <BarChart 
+                width={500} 
+                height={300} 
+                data={student.semesterProgress}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="semester" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={70}
+                  interval={0}
+                  tickFormatter={(value) => `Semester ${value}`}
+                />
+                <YAxis 
+                  domain={[0, 100]}
+                  label={{ value: 'Percentage (%)', angle: -90, position: 'insideLeft' }}
+                />
+                <Tooltip 
+                  formatter={(value) => [`${value}%`, 'Percentage']}
+                  labelFormatter={(label) => `Semester ${label}`}
+                />
+                <Legend />
+                <Bar 
+                  dataKey="percentage" 
+                  fill="#3B82F6" 
+                  name="Overall Percentage"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
             ) : (
               <p className="text-gray-500 text-center py-4">No semester progress data available</p>
             )}

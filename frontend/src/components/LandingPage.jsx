@@ -71,7 +71,7 @@ const LandingPage = () => {
         navigate('/teacher/dashboard');
       } else {
         // Regular student user
-        navigate('/dashboard');
+        navigate('/student/dashboard');
       }
     } else {
       // User is not authenticated, navigate to login

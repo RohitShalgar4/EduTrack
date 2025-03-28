@@ -270,7 +270,11 @@ export const updateStudentDetails = async (req, res) => {
             'previous_cgpa',
             'previous_percentages',
             'class_rank',
+            'current_semester',
+            'achievements',
+            'semesterProgress',
             'attendance',
+            'photo_url',
             'address'
         ];
 

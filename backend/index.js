@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import teacherRoute from './routes/teacherRoute.js';
 import adminRoute from './routes/adminRoute.js';
+import configRoute from './routes/configRoute.js';
 
 dotenv.config({});
 
@@ -37,6 +38,7 @@ app.use("/api/v1/user", userRoute);
 app.use("/api/v1/student", studentRoute);
 app.use("/api/v1/teacher", teacherRoute);
 app.use("/api/v1/admin", adminRoute);
+app.use("/api/v1/config", configRoute);
 
 connectDB().then(() => {
     app.listen(PORT, () => {
