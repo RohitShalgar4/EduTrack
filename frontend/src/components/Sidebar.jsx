@@ -125,13 +125,14 @@ const SideBar = ({ children }) => {
                 <FileText className="w-5 h-5" />
                 <span>Reports</span>
               </Link>
-              <Link
+              
+              {/* <Link
                 to="/settings"
                 className={`flex items-center gap-3 p-3 rounded-lg transition-colors w-full justify-center ${isActive('/settings')}`}
               >
                 <Settings className="w-5 h-5" />
                 <span>Settings</span>
-              </Link>
+              </Link> */}
               
               {/* Logout button inline with other links */}
               <button
