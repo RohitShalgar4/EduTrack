@@ -12,7 +12,9 @@ import {
     getAllTeachers,   // New function for super admin
     updateStudentDetails,
     getAdminDetails,
-    updateAdminDetails
+    updateAdminDetails,
+    importStudentsFromCSV,
+    deleteStudent
 } from "../controllers/adminController.js";
 import isAuthenticated from "../middleware/isAuthenticated.js";
 import checkRole from "../middleware/checkRole.js";
@@ -68,5 +70,11 @@ router.post("/teacher/:teacherId/photo", isAuthenticated, checkRole(["super_admi
 // Admin details routes (super_admin only)
 router.get('/admin/:adminId', isAuthenticated, checkRole("super_admin"), getAdminDetails);
 router.put('/admin/:adminId', isAuthenticated, checkRole("super_admin"), updateAdminDetails);
+
+// New route for CSV import
+router.post("/import-students", isAuthenticated, checkRole("department_admin"), importStudentsFromCSV);
+
+// New route for deleting a student
+router.delete("/students/:studentId", isAuthenticated, checkRole(["super_admin", "department_admin"]), deleteStudent);
 
 export default router; 

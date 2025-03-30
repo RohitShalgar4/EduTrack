@@ -477,6 +477,158 @@ export const updateAdminDetails = async (req, res) => {
     }
 };
 
+// Import students from CSV
+export const importStudentsFromCSV = async (req, res) => {
+    try {
+        const userDepartment = req.department;
+        const csvData = req.body;
+
+        if (!userDepartment) {
+            return res.status(403).json({ 
+                success: false,
+                message: "Access denied. Department information missing." 
+            });
+        }
+
+        if (!Array.isArray(csvData) || csvData.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid CSV data format"
+            });
+        }
+
+        const results = {
+            success: [],
+            errors: []
+        };
+
+        for (const row of csvData) {
+            try {
+                // Validate required fields
+                const requiredFields = [
+                    'full_name', 'email', 'registration_number',
+                    'gender', 'Mobile_No', 'Department', 'Parent_No', 'address', 'abc_id', 'class'
+                ];
+
+                const missingFields = requiredFields.filter(field => !row[field]);
+                if (missingFields.length > 0) {
+                    results.errors.push({
+                        row,
+                        error: `Missing required fields: ${missingFields.join(', ')}`
+                    });
+                    continue;
+                }
+
+                // Check for existing email
+                const existingEmail = await User.findOne({ email: row.email });
+                if (existingEmail) {
+                    results.errors.push({
+                        row,
+                        error: `Email ${row.email} already exists`
+                    });
+                    continue;
+                }
+
+                // Check for existing registration number
+                const existingRegistration = await User.findOne({ registration_number: row.registration_number });
+                if (existingRegistration) {
+                    results.errors.push({
+                        row,
+                        error: `Registration number ${row.registration_number} already exists`
+                    });
+                    continue;
+                }
+
+                // Hash password
+                const hashedPassword = await bcrypt.hash('Student@123', 10);
+
+                // Create student object
+                const studentData = {
+                    ...row,
+                    password: hashedPassword,
+                    previous_cgpa: [0],
+                    previous_percentages: [0],
+                    class_rank: 0,
+                    current_semester: 1,
+                    attendance: [],
+                    semesterProgress: [],
+                    achievements: [],
+                    photo_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(row.full_name)}&background=random`,
+                    isFirstLogin: true
+                };
+
+                // Create student
+                const student = await User.create(studentData);
+                results.success.push({
+                    registration_number: student.registration_number,
+                    full_name: student.full_name
+                });
+
+            } catch (error) {
+                results.errors.push({
+                    row,
+                    error: error.message
+                });
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: `Successfully imported ${results.success.length} students`,
+            results
+        });
+
+    } catch (error) {
+        console.error('Error in importStudentsFromCSV:', error);
+        return res.status(500).json({ 
+            success: false,
+            message: "Server error",
+            error: error.message 
+        });
+    }
+};
+
+// Delete student (both super admin and department admin)
+export const deleteStudent = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const userDepartment = req.department;
+        const userRole = req.role;
+
+        // Get student
+        const student = await User.findById(studentId);
+        if (!student) {
+            return res.status(404).json({ 
+                success: false,
+                message: "Student not found" 
+            });
+        }
+
+        // Check permissions
+        if (userRole === 'department_admin' && student.Department !== userDepartment) {
+            return res.status(403).json({ 
+                success: false,
+                message: "Access denied. Student not in your department" 
+            });
+        }
+
+        // Delete student
+        await User.findByIdAndDelete(studentId);
+
+        return res.status(200).json({
+            success: true,
+            message: "Student deleted successfully"
+        });
+    } catch (error) {
+        console.error('Error in deleteStudent:', error);
+        return res.status(500).json({ 
+            success: false,
+            message: "Server error",
+            error: error.message 
+        });
+    }
+};
+
 // module.exports = {
 //     addAdmin,
 //     getAllAdmins,

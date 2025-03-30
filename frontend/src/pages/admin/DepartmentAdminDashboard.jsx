@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, BookOpen, UserCog, BarChart3, UserPlus, Search } from 'lucide-react';
+import { Users, BookOpen, UserCog, BarChart3, UserPlus, Search, Trash2, AlertCircle } from 'lucide-react';
 import AddStudent from './forms/AddStudent';
 import AddTeacher from './forms/AddTeacher';
 import PropTypes from 'prop-types';
@@ -39,6 +39,9 @@ const DepartmentAdminDashboard = () => {
     courses: 12,
     performance: 78
   });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [deleteType, setDeleteType] = useState(null);
   
   const authUser = useSelector((state) => state.user.authUser);
   
@@ -189,6 +192,45 @@ const DepartmentAdminDashboard = () => {
     setOpenModal(null);
   };
 
+  const handleDeleteClick = (item, type) => {
+    setItemToDelete(item);
+    setDeleteType(type);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      let endpoint = '';
+      switch (deleteType) {
+        case 'student':
+          endpoint = `${BASE_URL}/api/v1/admin/students/${itemToDelete._id}`;
+          break;
+        case 'teacher':
+          endpoint = `${BASE_URL}/api/v1/admin/teachers/${itemToDelete._id}`;
+          break;
+        default:
+          return;
+      }
+
+      const response = await axios.delete(endpoint, {
+        withCredentials: true
+      });
+
+      if (response.data.success) {
+        toast.success(`${deleteType.charAt(0).toUpperCase() + deleteType.slice(1)} deleted successfully`);
+        // Refresh the data
+        fetchDashboardData();
+      }
+    } catch (error) {
+      console.error(`Error deleting ${deleteType}:`, error);
+      toast.error(error.response?.data?.message || `Failed to delete ${deleteType}`);
+    } finally {
+      setShowDeleteConfirm(false);
+      setItemToDelete(null);
+      setDeleteType(null);
+    }
+  };
+
   return (
     <div className="w-full h-full overflow-auto py-6 px-4">
 
@@ -270,18 +312,27 @@ const DepartmentAdminDashboard = () => {
                           : `${result.department} Department`}
                       </p>
                     </div>
-                    <button 
-                      onClick={() => {
-                        if (searchType === 'teacher') {
-                          navigate(`/teacher/${result._id}`);
-                        } else {
-                          navigate(`/student/${result._id}`);
-                        }
-                      }}
-                      className="text-blue-500 hover:text-blue-700 text-sm font-medium"
-                    >
-                      View Details
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => {
+                          if (searchType === 'teacher') {
+                            navigate(`/teacher/${result._id}`);
+                          } else {
+                            navigate(`/student/${result._id}`);
+                          }
+                        }}
+                        className="text-blue-500 hover:text-blue-700 text-sm font-medium"
+                      >
+                        View Details
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(result, searchType)}
+                        className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors"
+                        title={`Delete ${searchType}`}
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -378,6 +429,44 @@ const DepartmentAdminDashboard = () => {
             <div>
               {openModal === 'student' && <AddStudent onClose={closeModal} department={authUser?.department} />}
               {openModal === 'teacher' && <AddTeacher onClose={closeModal} department={authUser?.department} />}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center justify-center mb-4">
+              <div className="bg-red-100 rounded-full p-3">
+                <AlertCircle className="w-6 h-6 text-red-600" />
+              </div>
+            </div>
+            <h2 className="text-xl font-semibold text-center mb-2">Delete {deleteType?.charAt(0).toUpperCase() + deleteType?.slice(1)}</h2>
+            <p className="text-gray-600 text-center mb-6">
+              Are you sure you want to delete <span className="font-semibold">{itemToDelete?.full_name}</span>?
+              <br />
+              <span className="text-sm text-red-600">This action cannot be undone.</span>
+            </p>
+            <div className="flex flex-col sm:flex-row justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setItemToDelete(null);
+                  setDeleteType(null);
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete {deleteType?.charAt(0).toUpperCase() + deleteType?.slice(1)}
+              </button>
             </div>
           </div>
         </div>
