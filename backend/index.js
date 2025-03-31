@@ -11,6 +11,8 @@ import configRoute from './routes/configRoute.js';
 
 dotenv.config({});
 
+connectDB();
+
 const app = express();
 
 const PORT = process.env.PORT || 5000;
@@ -40,8 +42,6 @@ app.use("/api/v1/teacher", teacherRoute);
 app.use("/api/v1/admin", adminRoute);
 app.use("/api/v1/config", configRoute);
 
-connectDB().then(() => {
     app.listen(PORT, () => {
         console.log(`Server listening at port ${PORT}`);
     });
-});

@@ -11,11 +11,21 @@ export const addAdmin = async (req, res) => {
             password,
             role,
             department,
-            phone_number
+            phone_number,
+            abc_id,
+            address,
+            mobile_no,
+            parent_mobile_no,
+            gender
         } = req.body;
 
         // Define allowed departments
         const allowedDepartments = ["CSE", "ENTC", "MECH", "CIVIL", "ELE"];
+
+        // Validate required fields
+        if (!full_name || !email || !password || !role || !abc_id || !address || !mobile_no || !parent_mobile_no || !gender) {
+            return res.status(400).json({ message: "All fields are required." });
+        }
 
         // Validate role
         if (!['super_admin', 'department_admin'].includes(role)) {
@@ -27,23 +37,51 @@ export const addAdmin = async (req, res) => {
             return res.status(400).json({ message: "Invalid or missing department for department_admin." });
         }
 
+        // Validate phone numbers
+        const phoneRegex = /^[0-9]{10}$/;
+        const cleanMobileNo = mobile_no.replace(/\D/g, '');
+        const cleanParentNo = parent_mobile_no.replace(/\D/g, '');
+
+        if (!phoneRegex.test(cleanMobileNo)) {
+            return res.status(400).json({ message: "Invalid mobile number format. Must be 10 digits." });
+        }
+        if (!phoneRegex.test(cleanParentNo)) {
+            return res.status(400).json({ message: "Invalid parent mobile number format. Must be 10 digits." });
+        }
+
+        // Validate gender
+        if (!['Male', 'Female', 'Other'].includes(gender)) {
+            return res.status(400).json({ message: "Invalid gender. Must be 'Male', 'Female', or 'Other'." });
+        }
+
         // Check if admin already exists
         const existingAdmin = await Admin.findOne({ email });
         if (existingAdmin) {
             return res.status(400).json({ message: "Admin with this email already exists." });
         }
 
+        // Check if ABC ID already exists
+        const existingABCId = await Admin.findOne({ abc_id });
+        if (existingABCId) {
+            return res.status(400).json({ message: "Admin with this ABC ID already exists." });
+        }
+
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create new admin (include department without conditions)
+        // Create new admin
         const admin = await Admin.create({
             full_name,
             email,
             password: hashedPassword,
             role,
-            department, // Department will be stored even if it's empty (only 'department_admin' needs it)
-            phone_number
+            department,
+            phone_number,
+            abc_id,
+            address,
+            mobile_no: cleanMobileNo,
+            parent_mobile_no: cleanParentNo,
+            gender
         });
 
         // Remove password from response
@@ -480,110 +518,206 @@ export const updateAdminDetails = async (req, res) => {
 // Import students from CSV
 export const importStudentsFromCSV = async (req, res) => {
     try {
-        const userDepartment = req.department;
-        const csvData = req.body;
-
-        if (!userDepartment) {
-            return res.status(403).json({ 
-                success: false,
-                message: "Access denied. Department information missing." 
-            });
-        }
-
-        if (!Array.isArray(csvData) || csvData.length === 0) {
+        console.log('[importStudentsFromCSV] Starting import process');
+        console.log('[importStudentsFromCSV] Request body:', req.body);
+        
+        const { csvData, user } = req.body;
+        
+        if (!user || !user.role) {
+            console.error('[importStudentsFromCSV] Missing user information');
             return res.status(400).json({
                 success: false,
-                message: "Invalid CSV data format"
+                message: 'Missing user information'
             });
         }
 
-        const results = {
-            success: [],
-            errors: []
-        };
+        console.log('[importStudentsFromCSV] User:', user);
 
+        if (!csvData || !Array.isArray(csvData)) {
+            console.error('[importStudentsFromCSV] Invalid CSV data format:', {
+                csvData: csvData,
+                type: typeof csvData,
+                isArray: Array.isArray(csvData)
+            });
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid CSV data format'
+            });
+        }
+
+        const createdStudents = [];
+        const errors = [];
+
+        // Process each row
         for (const row of csvData) {
             try {
+                console.log('[importStudentsFromCSV] Processing row:', row);
+
                 // Validate required fields
-                const requiredFields = [
-                    'full_name', 'email', 'registration_number',
-                    'gender', 'Mobile_No', 'Department', 'Parent_No', 'address', 'abc_id', 'class'
-                ];
-
+                const requiredFields = ['full_name', 'email', 'registration_number', 'abc_id', 'address', 'Mobile_No', 'Parent_No', 'gender', 'class'];
                 const missingFields = requiredFields.filter(field => !row[field]);
+                
                 if (missingFields.length > 0) {
-                    results.errors.push({
-                        row,
-                        error: `Missing required fields: ${missingFields.join(', ')}`
+                    console.error('[importStudentsFromCSV] Missing required fields:', {
+                        student: row.full_name,
+                        missingFields
                     });
+                    errors.push(`Missing required fields for student ${row.full_name}: ${missingFields.join(', ')}`);
                     continue;
                 }
 
-                // Check for existing email
-                const existingEmail = await User.findOne({ email: row.email });
-                if (existingEmail) {
-                    results.errors.push({
-                        row,
-                        error: `Email ${row.email} already exists`
+                // Validate phone numbers
+                const mobileNoRegex = /^\d{10}$/;
+                const cleanMobileNo = row.Mobile_No.toString().replace(/\D/g, '');
+                const cleanParentNo = row.Parent_No.toString().replace(/[eE].*$/, '').replace(/\D/g, '');
+
+                console.log('[importStudentsFromCSV] Phone numbers:', {
+                    original: {
+                        mobile: row.Mobile_No,
+                        parent: row.Parent_No
+                    },
+                    cleaned: {
+                        mobile: cleanMobileNo,
+                        parent: cleanParentNo
+                    }
+                });
+
+                if (!mobileNoRegex.test(cleanMobileNo) || !mobileNoRegex.test(cleanParentNo)) {
+                    console.error('[importStudentsFromCSV] Invalid phone number format:', {
+                        student: row.full_name,
+                        mobileNo: cleanMobileNo,
+                        parentNo: cleanParentNo
                     });
+                    errors.push(`Invalid phone number format for student ${row.full_name}. Phone numbers must be 10 digits.`);
                     continue;
                 }
 
-                // Check for existing registration number
-                const existingRegistration = await User.findOne({ registration_number: row.registration_number });
-                if (existingRegistration) {
-                    results.errors.push({
-                        row,
-                        error: `Registration number ${row.registration_number} already exists`
+                // Validate gender
+                const validGenders = ['Male', 'Female', 'Other'];
+                if (!validGenders.includes(row.gender)) {
+                    console.error('[importStudentsFromCSV] Invalid gender:', {
+                        student: row.full_name,
+                        gender: row.gender
                     });
+                    errors.push(`Invalid gender for student ${row.full_name}. Must be one of: ${validGenders.join(', ')}`);
                     continue;
                 }
 
-                // Hash password
-                const hashedPassword = await bcrypt.hash('Student@123', 10);
+                // Validate current_semester
+                const current_semester = parseInt(row.current_semester);
+                if (isNaN(current_semester) || current_semester < 1 || current_semester > 8) {
+                    console.error('[importStudentsFromCSV] Invalid current_semester:', {
+                        student: row.full_name,
+                        current_semester: row.current_semester
+                    });
+                    errors.push(`Invalid current_semester for student ${row.full_name}. Must be a number between 1 and 8.`);
+                    continue;
+                }
 
-                // Create student object
-                const studentData = {
-                    ...row,
-                    password: hashedPassword,
+                // Check for existing users
+                const existingUser = await User.findOne({
+                    $or: [
+                        { email: row.email },
+                        { registration_number: row.registration_number },
+                        { abc_id: row.abc_id }
+                    ]
+                });
+
+                if (existingUser) {
+                    console.error('[importStudentsFromCSV] User already exists:', {
+                        student: row.full_name,
+                        existingUser: {
+                            email: existingUser.email,
+                            registration_number: existingUser.registration_number,
+                            abc_id: existingUser.abc_id
+                        }
+                    });
+                    errors.push(`Student ${row.full_name} already exists with email ${row.email} or registration number ${row.registration_number} or ABC ID ${row.abc_id}`);
+                    continue;
+                }
+
+                // Determine department and current semester based on user role
+                let department;
+                if (user.role === 'super_admin') {
+                    department = row.Department || user.department;
+                } else {
+                    department = user.department;
+                }
+
+                console.log('[importStudentsFromCSV] Creating student with:', {
+                    name: row.full_name,
+                    department,
+                    current_semester,
+                    class: row.class
+                });
+
+                // Create new student with all required fields
+                const newStudent = await User.create({
+                    full_name: row.full_name,
+                    email: row.email,
+                    password: await bcrypt.hash(row.registration_number, 10),
+                    role: 'student',
+                    Department: department,
+                    registration_number: row.registration_number,
+                    current_semester: current_semester,
+                    abc_id: row.abc_id,
+                    address: row.address,
+                    Mobile_No: cleanMobileNo,
+                    Parent_No: cleanParentNo,
+                    gender: row.gender,
+                    class: row.class,
                     previous_cgpa: [0],
                     previous_percentages: [0],
                     class_rank: 0,
-                    current_semester: 1,
                     attendance: [],
                     semesterProgress: [],
                     achievements: [],
                     photo_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(row.full_name)}&background=random`,
                     isFirstLogin: true
-                };
-
-                // Create student
-                const student = await User.create(studentData);
-                results.success.push({
-                    registration_number: student.registration_number,
-                    full_name: student.full_name
                 });
 
+                console.log('[importStudentsFromCSV] Student created successfully:', {
+                    id: newStudent._id,
+                    name: newStudent.full_name
+                });
+
+                createdStudents.push({
+                    id: newStudent._id,
+                    name: newStudent.full_name,
+                    email: newStudent.email,
+                    abc_id: newStudent.abc_id
+                });
             } catch (error) {
-                results.errors.push({
+                console.error('[importStudentsFromCSV] Error processing row:', {
                     row,
-                    error: error.message
+                    error: error.message,
+                    stack: error.stack
                 });
+                errors.push(`Error processing student ${row.full_name}: ${error.message}`);
             }
         }
 
-        return res.status(200).json({
-            success: true,
-            message: `Successfully imported ${results.success.length} students`,
-            results
+        console.log('[importStudentsFromCSV] Import completed:', {
+            createdCount: createdStudents.length,
+            errorCount: errors.length,
+            errors: errors
         });
 
+        res.status(200).json({
+            success: true,
+            message: `Successfully imported ${createdStudents.length} students${errors.length > 0 ? ` with ${errors.length} errors` : ''}`,
+            createdStudents,
+            errors: errors.length > 0 ? errors : undefined
+        });
     } catch (error) {
-        console.error('Error in importStudentsFromCSV:', error);
-        return res.status(500).json({ 
+        console.error('[importStudentsFromCSV] Error:', {
+            message: error.message,
+            stack: error.stack
+        });
+        res.status(500).json({
             success: false,
-            message: "Server error",
-            error: error.message 
+            message: 'Error importing students',
+            error: error.message
         });
     }
 };

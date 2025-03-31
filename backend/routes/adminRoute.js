@@ -72,7 +72,7 @@ router.get('/admin/:adminId', isAuthenticated, checkRole("super_admin"), getAdmi
 router.put('/admin/:adminId', isAuthenticated, checkRole("super_admin"), updateAdminDetails);
 
 // New route for CSV import
-router.post("/import-students", isAuthenticated, checkRole("department_admin"), importStudentsFromCSV);
+router.post("/import-students", isAuthenticated, checkRole(["department_admin", "super_admin"]), importStudentsFromCSV);
 
 // New route for deleting a student
 router.delete("/students/:studentId", isAuthenticated, checkRole(["super_admin", "department_admin"]), deleteStudent);

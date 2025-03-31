@@ -3,14 +3,13 @@ import PropTypes from 'prop-types';
 import axios from 'axios';
 import { BASE_URL } from '../../../main';
 import toast from 'react-hot-toast';
-import { Upload } from 'lucide-react';
 import Papa from 'papaparse';
+import { useSelector } from 'react-redux';
 
 const AddStudent = ({ onClose, department }) => {
   console.log('[AddStudent] Component mounted with department:', department);
   
   const [loading, setLoading] = useState(false);
-  const [importing, setImporting] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -33,6 +32,9 @@ const AddStudent = ({ onClose, department }) => {
     photo_url: `https://ui-avatars.com/api/?name=Student&background=random`,
     isFirstLogin: true
   });
+
+  const authUser = useSelector((state) => state.user.authUser);
+  const isSuperAdmin = authUser?.role === 'super_admin';
 
   console.log('[AddStudent] Initial Form Data:', formData);
 
@@ -159,96 +161,188 @@ const AddStudent = ({ onClose, department }) => {
     }
   };
 
-  const handleCSVImport = async (event) => {
+  const handleCSVUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    setImporting(true);
+    console.log('[AddStudent] Starting CSV upload process');
+    console.log('[AddStudent] File details:', {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    });
+
     try {
-      // Parse CSV file
-      Papa.parse(file, {
-        complete: async (results) => {
-          try {
-            console.log('CSV Parse Results:', results);
-            console.log('Department from props:', department);
-            
-            if (!results.data || results.data.length < 2) {
-              toast.error('CSV file is empty or invalid');
-              return;
-            }
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          console.log('[AddStudent] File read successfully, parsing CSV');
+          const result = Papa.parse(e.target.result, {
+            header: true,
+            skipEmptyLines: true
+          });
 
-            // Get headers from first row and clean them
-            const headers = results.data[0].map(header => header.trim());
-            console.log('CSV Headers:', headers);
+          console.log('[AddStudent] CSV Parse Result:', {
+            hasErrors: result.errors.length > 0,
+            errors: result.errors,
+            meta: result.meta,
+            dataLength: result.data.length
+          });
 
-            // Validate required headers
-            const requiredHeaders = [
-              'full_name', 'email', 'registration_number', 'Department',
-              'gender', 'Mobile_No', 'Parent_No', 'address', 'abc_id', 'class'
-            ];
+          const csvData = result.data;
+          console.log('[AddStudent] First row of CSV:', csvData[0]);
 
-            const missingHeaders = requiredHeaders.filter(header => !headers.includes(header));
-            if (missingHeaders.length > 0) {
-              toast.error(`Missing required columns: ${missingHeaders.join(', ')}`);
-              return;
-            }
+          // Validate CSV data
+          if (!csvData || csvData.length === 0) {
+            console.error('[AddStudent] CSV file is empty');
+            toast.error('CSV file is empty');
+            return;
+          }
 
-            // Convert remaining rows to objects and add department
-            const students = results.data.slice(1).map(row => {
-              const student = {};
-              headers.forEach((header, index) => {
-                student[header] = row[index]?.trim() || '';
-              });
-              return student;
+          // Check required headers
+          const requiredHeaders = [
+            'full_name', 
+            'email', 
+            'registration_number',
+            'abc_id',
+            'address',
+            'Mobile_No',
+            'Parent_No',
+            'gender'
+          ];
+          const headers = Object.keys(csvData[0]);
+          console.log('[AddStudent] CSV Headers:', headers);
+          console.log('[AddStudent] Required Headers:', requiredHeaders);
+
+          const missingHeaders = requiredHeaders.filter(header => !headers.includes(header));
+          console.log('[AddStudent] Missing Headers:', missingHeaders);
+
+          if (missingHeaders.length > 0) {
+            console.error('[AddStudent] Missing required headers:', missingHeaders);
+            toast.error(`Missing required headers: ${missingHeaders.join(', ')}`);
+            return;
+          }
+
+          // Map and clean the data
+          const mappedData = csvData.map(row => {
+            console.log('[AddStudent] Processing row:', row);
+
+            // Clean phone numbers and handle scientific notation
+            const cleanMobileNo = row.Mobile_No.toString().replace(/\D/g, '');
+            const cleanParentNo = row.Parent_No.toString().replace(/[eE].*$/, '').replace(/\D/g, '');
+
+            console.log('[AddStudent] Phone numbers:', {
+              original: {
+                mobile: row.Mobile_No,
+                parent: row.Parent_No
+              },
+              cleaned: {
+                mobile: cleanMobileNo,
+                parent: cleanParentNo
+              }
             });
 
-            console.log('Processed Students with Department:', students);
-
-            // Send to backend
-            const response = await axios.post(
-              `${BASE_URL}/api/v1/admin/import-students`,
-              students,
-              {
-                withCredentials: true,
-                headers: {
-                  'Content-Type': 'application/json'
-                }
-              }
-            );
-
-            const { results: importResults } = response.data;
-            
-            // Show results
-            if (importResults.success.length > 0) {
-              toast.success(`Successfully imported ${importResults.success.length} students`);
-            }
-            if (importResults.errors.length > 0) {
-              toast.error(`${importResults.errors.length} students failed to import`);
-              console.error('Import errors:', importResults.errors);
+            // Validate phone numbers
+            if (cleanMobileNo.length !== 10 || cleanParentNo.length !== 10) {
+              throw new Error(`Invalid phone number format for student ${row.full_name}. Phone numbers must be 10 digits.`);
             }
 
-            onClose();
-          } catch (error) {
-            console.error('Error processing CSV:', error);
-            toast.error(error.response?.data?.message || 'Error importing students');
-          } finally {
-            setImporting(false);
+            // Map semester based on class/year
+            let current_semester = 1; // Default value
+            if (row.current_semester) {
+              const semesterMap = {
+                'B.Tech 1st Year': 1,
+                'B.Tech 2nd Year': 3,
+                'B.Tech 3rd Year': 5,
+                'B.Tech 4th Year': 7
+              };
+              current_semester = semesterMap[row.current_semester] || 1;
+            }
+
+            // Map the data to match backend expectations
+            const mappedRow = {
+              full_name: row.full_name,
+              email: row.email,
+              registration_number: row.registration_number,
+              abc_id: row.abc_id,
+              address: row.address,
+              Mobile_No: cleanMobileNo,
+              Parent_No: cleanParentNo,
+              gender: row.gender,
+              Department: row.Department || department, // Use provided department or default to prop
+              current_semester: current_semester,
+              class: row.class || row.current_semester || 'B.Tech 1st Year' // Use class or current_semester as fallback
+            };
+
+            console.log('[AddStudent] Mapped row:', mappedRow);
+            return mappedRow;
+          });
+
+          console.log('[AddStudent] Final mapped data:', mappedData);
+
+          // For department admin, remove department field from CSV data
+          if (!isSuperAdmin) {
+            console.log('[AddStudent] Department Admin detected, removing department field from CSV data');
+            mappedData.forEach(row => {
+              delete row.Department;
+            });
           }
-        },
-        error: (error) => {
-          console.error('Error parsing CSV:', error);
-          toast.error('Error parsing CSV file');
-          setImporting(false);
-        },
-        header: false, // We'll handle headers manually
-        skipEmptyLines: true,
-        transformHeader: (header) => header.trim(),
-        transform: (value) => value.trim()
-      });
+
+          console.log('[AddStudent] Sending CSV data to backend:', {
+            url: `${BASE_URL}/api/v1/admin/import-students`,
+            data: mappedData,
+            isSuperAdmin,
+            user: authUser
+          });
+
+          // Send to backend
+          const response = await axios.post(
+            `${BASE_URL}/api/v1/admin/import-students`,
+            { 
+              csvData: mappedData,
+              user: {
+                role: authUser.role,
+                department: authUser.department
+              }
+            },
+            {
+              withCredentials: true,
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+
+          console.log('[AddStudent] Backend Response:', response.data);
+
+          if (response.data.success) {
+            console.log('[AddStudent] Import successful:', response.data.message);
+            if (response.data.errors && response.data.errors.length > 0) {
+              console.error('[AddStudent] Import errors:', response.data.errors);
+              toast.error(`Import completed with errors: ${response.data.errors.join(', ')}`);
+            } else {
+              toast.success(response.data.message);
+            }
+            onClose();
+          } else {
+            console.error('[AddStudent] Import failed:', response.data.message);
+            toast.error(response.data.message || 'Failed to import students');
+          }
+        } catch (error) {
+          console.error('[AddStudent] Error processing CSV:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status,
+            headers: error.response?.headers,
+            config: error.config
+          });
+          toast.error(error.response?.data?.message || error.message || 'Error processing CSV file');
+        }
+      };
+      reader.readAsText(file);
     } catch (error) {
-      console.error('Error handling CSV file:', error);
-      toast.error('Error processing CSV file');
-      setImporting(false);
+      console.error('[AddStudent] Error reading file:', error);
+      toast.error('Error reading file');
     }
   };
 
@@ -267,28 +361,53 @@ const AddStudent = ({ onClose, department }) => {
           </button>
         </div>
 
-        {/* CSV Import Section */}
-        <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-          <h3 className="text-lg font-medium text-blue-800 mb-2">Import Students from CSV</h3>
+        {/* CSV Upload Section */}
+        <div className="mt-4">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">CSV Import</h3>
           <p className="text-sm text-gray-600 mb-4">
-            Upload a CSV file with student details. The CSV should include the following columns:
-            full_name, email, registration_number, current_semester, gender, Mobile_No, Parent_No, address, abc_id, class
+            Import multiple students at once using a CSV file. The CSV should have the following headers:
           </p>
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 cursor-pointer">
-              <Upload className="w-4 h-4" />
-              {importing ? 'Importing...' : 'Import CSV'}
-              <input
-                type="file"
-                accept=".csv"
-                onChange={handleCSVImport}
-                className="hidden"
-                disabled={importing}
-              />
+          <div className="bg-gray-50 p-4 rounded-lg mb-4">
+            <p className="text-sm font-medium text-gray-700 mb-2">Required Headers:</p>
+            <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+              <li>full_name</li>
+              <li>email</li>
+              <li>registration_number</li>
+              <li>abc_id</li>
+              <li>address</li>
+              <li>Mobile_No</li>
+              <li>Parent_No</li>
+              <li>gender</li>
+              {authUser?.role === 'super_admin' && (
+                <>
+                  <li>department (optional)</li>
+                  <li>current_semester (optional, defaults to 1)</li>
+                </>
+              )}
+            </ul>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <p className="text-sm font-medium text-gray-700 mb-2">Sample CSV Format:</p>
+            <pre className="text-xs text-gray-600 whitespace-pre-wrap">
+              full_name,email,registration_number,abc_id,address,Mobile_No,Parent_No,gender{department ? ',department,current_semester' : ''}
+              John Doe,john@example.com,REG123,ABC123,123 Main St,9876543210,9876543211,Male{department ? ',CSE,1' : ''}
+            </pre>
+          </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Upload CSV File
             </label>
-            {importing && (
-              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-500"></div>
-            )}
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleCSVUpload}
+              className="block w-full text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-md file:border-0
+                file:text-sm file:font-medium
+                file:bg-blue-50 file:text-blue-700
+                hover:file:bg-blue-100"
+            />
           </div>
         </div>
 
