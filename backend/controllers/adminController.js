@@ -8,66 +8,72 @@ export const addAdmin = async (req, res) => {
         const {
             full_name,
             email,
-            password,
-            role,
-            department,
             phone_number,
-            abc_id,
-            address,
-            mobile_no,
-            parent_mobile_no,
-            gender
+            role,
+            department
         } = req.body;
 
-        // Define allowed departments
+        // Define allowed departments and roles
         const allowedDepartments = ["CSE", "ENTC", "MECH", "CIVIL", "ELE"];
+        const allowedRoles = ["super_admin", "department_admin"];
 
         // Validate required fields
-        if (!full_name || !email || !password || !role || !abc_id || !address || !mobile_no || !parent_mobile_no || !gender) {
-            return res.status(400).json({ message: "All fields are required." });
+        if (!full_name || !email || !phone_number || !role) {
+            return res.status(400).json({ 
+                success: false,
+                message: "Required fields missing: full name, email, phone number, and role are mandatory." 
+            });
         }
 
         // Validate role
-        if (!['super_admin', 'department_admin'].includes(role)) {
-            return res.status(400).json({ message: "Invalid role. Must be 'super_admin' or 'department_admin'." });
+        if (!allowedRoles.includes(role)) {
+            return res.status(400).json({ 
+                success: false,
+                message: "Invalid role. Must be 'super_admin' or 'department_admin'." 
+            });
         }
 
-        // Validate department only if role is 'department_admin'
-        if (role === 'department_admin' && (!department || !allowedDepartments.includes(department))) {
-            return res.status(400).json({ message: "Invalid or missing department for department_admin." });
+        // Validate department if role is department_admin
+        if (role === 'department_admin') {
+            if (!department || !allowedDepartments.includes(department)) {
+                return res.status(400).json({ 
+                    success: false,
+                    message: "Department is required and must be valid for department admin role." 
+                });
+            }
         }
 
-        // Validate phone numbers
+        // Validate phone number (10 digits)
         const phoneRegex = /^[0-9]{10}$/;
-        const cleanMobileNo = mobile_no.replace(/\D/g, '');
-        const cleanParentNo = parent_mobile_no.replace(/\D/g, '');
-
-        if (!phoneRegex.test(cleanMobileNo)) {
-            return res.status(400).json({ message: "Invalid mobile number format. Must be 10 digits." });
-        }
-        if (!phoneRegex.test(cleanParentNo)) {
-            return res.status(400).json({ message: "Invalid parent mobile number format. Must be 10 digits." });
+        const cleanPhone = phone_number.toString().replace(/\D/g, '');
+        if (!phoneRegex.test(cleanPhone)) {
+            return res.status(400).json({ 
+                success: false,
+                message: "Invalid phone number format. Must be 10 digits." 
+            });
         }
 
-        // Validate gender
-        if (!['Male', 'Female', 'Other'].includes(gender)) {
-            return res.status(400).json({ message: "Invalid gender. Must be 'Male', 'Female', or 'Other'." });
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ 
+                success: false,
+                message: "Invalid email format." 
+            });
         }
 
         // Check if admin already exists
         const existingAdmin = await Admin.findOne({ email });
         if (existingAdmin) {
-            return res.status(400).json({ message: "Admin with this email already exists." });
+            return res.status(400).json({ 
+                success: false,
+                message: "Admin with this email already exists." 
+            });
         }
 
-        // Check if ABC ID already exists
-        const existingABCId = await Admin.findOne({ abc_id });
-        if (existingABCId) {
-            return res.status(400).json({ message: "Admin with this ABC ID already exists." });
-        }
-
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // Generate temporary password (using registration number pattern)
+        const tempPassword = "Admin@123";
+        const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
         // Create new admin
         const admin = await Admin.create({
@@ -75,13 +81,10 @@ export const addAdmin = async (req, res) => {
             email,
             password: hashedPassword,
             role,
-            department,
-            phone_number,
-            abc_id,
-            address,
-            mobile_no: cleanMobileNo,
-            parent_mobile_no: cleanParentNo,
-            gender
+            department: role === 'department_admin' ? department : undefined,
+            phone_number: cleanPhone,
+            isFirstLogin: true,
+            photo_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(full_name)}&background=random`
         });
 
         // Remove password from response
@@ -89,12 +92,18 @@ export const addAdmin = async (req, res) => {
         delete adminResponse.password;
 
         return res.status(201).json({
+            success: true,
             message: "Admin added successfully",
-            admin: adminResponse
+            admin: adminResponse,
+            tempPassword // Include temporary password in response
         });
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Server error" });
+        console.error('Error in addAdmin:', error);
+        return res.status(500).json({ 
+            success: false,
+            message: "Server error",
+            error: error.message 
+        });
     }
 };
 
