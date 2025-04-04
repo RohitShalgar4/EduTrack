@@ -4,45 +4,160 @@ import { User } from "../models/userModel.js";
 
 export const addTeacher = async (req, res) => {
     try {
+        console.log('[addTeacher] Request details:', {
+            body: req.body,
+            userRole: req.role,
+            userDepartment: req.department
+        });
+
         const {
             full_name,
             email,
-            password,
-            department,
+            phone_number,
+            designation,
+            specialization,
+            yearOfExperience,
             qualification,
-            yearOfExperience
+            department: requestDepartment
         } = req.body;
 
+        // Validate required fields
+        if (!full_name || !email || !phone_number || !designation || 
+            !specialization || !yearOfExperience || !qualification) {
+            console.error('[addTeacher] Missing required fields:', {
+                full_name: !!full_name,
+                email: !!email,
+                phone_number: !!phone_number,
+                designation: !!designation,
+                specialization: !!specialization,
+                yearOfExperience: !!yearOfExperience,
+                qualification: !!qualification
+            });
+            return res.status(400).json({ 
+                success: false,
+                message: "Please fill all required fields" 
+            });
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ 
+                success: false,
+                message: "Invalid email format" 
+            });
+        }
+
+        // Validate phone number
+        const phoneRegex = /^[0-9]{10}$/;
+        if (!phoneRegex.test(phone_number)) {
+            return res.status(400).json({ 
+                success: false,
+                message: "Invalid phone number format. Must be 10 digits." 
+            });
+        }
+
+        const password = "Teacher@123";
+        
+        // Extract department based on admin role
+        let department;
+        
+        if (req.role === 'super_admin') {
+            department = requestDepartment;
+            if (!department) {
+                return res.status(400).json({ 
+                    success: false,
+                    message: "Department is required" 
+                });
+            }
+        } else if (req.role === 'department_admin') {
+            department = req.department;
+            if (!department) {
+                return res.status(400).json({ 
+                    success: false,
+                    message: "Department admin's department not found" 
+                });
+            }
+        } else {
+            return res.status(403).json({ 
+                success: false,
+                message: "Unauthorized to add teachers" 
+            });
+        }
+
+        console.log('[addTeacher] Department determination:', {
+            userRole: req.role,
+            userDepartment: req.department,
+            requestedDepartment: requestDepartment,
+            finalDepartment: department
+        });
+        
+        // Validate department
+        const validDepartments = ["CSE", "ENTC", "MECH", "CIVIL", "ELE"];
+        if (!validDepartments.includes(department)) {
+            return res.status(400).json({ 
+                success: false,
+                message: `Invalid department. Must be one of: ${validDepartments.join(', ')}` 
+            });
+        }
+        
         // Check if teacher already exists
         const existingTeacher = await Teacher.findOne({ email });
         if (existingTeacher) {
-            return res.status(400).json({ message: "Teacher with this email already exists" });
+            return res.status(400).json({ 
+                success: false,
+                message: "Teacher with this email already exists" 
+            });
         }
 
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create new teacher
-        const teacher = await Teacher.create({
+        // Create teacher data object with correct field names matching the model
+        const teacherData = {
             full_name,
             email,
             password: hashedPassword,
             department,
             qualification,
-            yearOfExperience
+            yearOfExperience: parseInt(yearOfExperience),
+            designation,
+            specialization,
+            phone_number,
+            photo_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(full_name)}&background=random`,
+            isFirstLogin: true,
+            role: 'teacher'
+        };
+
+        console.log('[addTeacher] Creating teacher with data:', {
+            ...teacherData,
+            password: '[REDACTED]'
         });
+
+        // Create new teacher
+        const teacher = await Teacher.create(teacherData);
 
         // Remove password from response
         const teacherResponse = teacher.toObject();
         delete teacherResponse.password;
 
         return res.status(201).json({
+            success: true,
             message: "Teacher added successfully",
             teacher: teacherResponse
         });
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Server error" });
+        console.error('[addTeacher] Error:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+            code: error.code
+        });
+        return res.status(500).json({ 
+            success: false,
+            message: "Server error while adding teacher",
+            error: error.message 
+        });
     }
 };
 
