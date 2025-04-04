@@ -6,15 +6,28 @@ import { Teacher } from "../models/teacherModel.js";
 
 export const register = async (req, res) => {
     try {
+        console.log('[register] Request body:', req.body);
+        
         const { 
-            full_name, email, password, Mobile_No, Parent_No, address, registration_number, 
-            Department, class: userClass, abc_id, previous_cgpa, previous_percentages, current_semester, class_rank, 
-            attendance, semesterProgress, photo_url, achievements, gender 
+            full_name, email, Mobile_No, Parent_No, address, registration_number, 
+            class: userClass, abc_id, current_semester, gender, Department
         } = req.body;
         
         // Ensure all required fields are included in the request
-        if (!full_name || !email || !password || !Mobile_No || !Parent_No || !address || 
-            !registration_number || !Department || !userClass || !abc_id || !gender) {
+        if (!full_name || !email || !Mobile_No || !Parent_No || !address || 
+            !registration_number || !userClass || !abc_id || !gender || !Department) {
+            console.error('[register] Missing required fields:', {
+                full_name: !!full_name,
+                email: !!email,
+                Mobile_No: !!Mobile_No,
+                Parent_No: !!Parent_No,
+                address: !!address,
+                registration_number: !!registration_number,
+                userClass: !!userClass,
+                abc_id: !!abc_id,
+                gender: !!gender,
+                Department: !!Department
+            });
             return res.status(400).json({ 
                 success: false,
                 message: "Please fill all required fields" 
@@ -24,6 +37,7 @@ export const register = async (req, res) => {
         // Check if email already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
+            console.error('[register] Email already exists:', email);
             return res.status(400).json({
                 success: false, 
                 message: "Email already exists, try a different one" 
@@ -33,37 +47,83 @@ export const register = async (req, res) => {
         // Check if registration number already exists
         const existingRegistration = await User.findOne({ registration_number });
         if (existingRegistration) {
+            console.error('[register] Registration number already exists:', registration_number);
             return res.status(400).json({
                 success: false,
                 message: "Registration number already exists"
             });
         }
-        
+
+        // Set default password
+        const password = "Student@123";
         // Hash the password before saving it
         const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Validate phone numbers
+        const phoneRegex = /^[0-9]{10}$/;
+        const cleanMobileNo = Mobile_No.toString().replace(/\D/g, '');
+        const cleanParentNo = Parent_No.toString().replace(/\D/g, '');
+
+        if (!phoneRegex.test(cleanMobileNo) || !phoneRegex.test(cleanParentNo)) {
+            console.error('[register] Invalid phone number format:', {
+                mobile: cleanMobileNo,
+                parent: cleanParentNo
+            });
+            return res.status(400).json({
+                success: false,
+                message: "Invalid phone number format. Must be 10 digits."
+            });
+        }
+
+        // Validate gender
+        const validGenders = ['Male', 'Female', 'Other'];
+        if (!validGenders.includes(gender)) {
+            console.error('[register] Invalid gender:', gender);
+            return res.status(400).json({
+                success: false,
+                message: `Invalid gender. Must be one of: ${validGenders.join(', ')}`
+            });
+        }
+
+        // Validate department
+        const allowedDepartments = ["CSE", "ENTC", "MECH", "CIVIL", "ELE"];
+        if (!allowedDepartments.includes(Department)) {
+            console.error('[register] Invalid department:', Department);
+            return res.status(400).json({
+                success: false,
+                message: `Invalid department. Must be one of: ${allowedDepartments.join(', ')}`
+            });
+        }
 
         // Create the new user with the updated fields
         const newUser = await User.create({
             full_name,
             email,
             password: hashedPassword,
-            Mobile_No,
-            Parent_No,
+            Mobile_No: cleanMobileNo,
+            Parent_No: cleanParentNo,
             address,
             registration_number,
             Department,
             class: userClass,
             abc_id,
-            previous_cgpa: previous_cgpa || [0],
-            previous_percentages: previous_percentages || [0],
+            previous_cgpa: [0],
+            previous_percentages: [0],
             current_semester: current_semester || 1,
-            class_rank: class_rank || 0,
-            attendance: attendance || [],
-            semesterProgress: semesterProgress || [],
-            photo_url: photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(full_name)}&background=random`,
-            achievements: achievements || [],
+            class_rank: 0,
+            attendance: [],
+            semesterProgress: [],
+            photo_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(full_name)}&background=random`,
+            achievements: [],
             gender,
             isFirstLogin: true
+        });
+
+        console.log('[register] User created successfully:', {
+            id: newUser._id,
+            name: newUser.full_name,
+            email: newUser.email,
+            department: newUser.Department
         });
         
         return res.status(201).json({
@@ -71,10 +131,15 @@ export const register = async (req, res) => {
             message: "Account created successfully"
         });
     } catch (error) {
-        console.error("Registration error:", error);
+        console.error('[register] Error:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
         return res.status(500).json({ 
             success: false,
-            message: "Internal server error" 
+            message: "Internal server error",
+            error: error.message
         });
     }
 };

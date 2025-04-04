@@ -36,6 +36,9 @@ const AddStudent = ({ onClose, department }) => {
   const authUser = useSelector((state) => state.user.authUser);
   const isSuperAdmin = authUser?.role === 'super_admin';
 
+  // Define allowed departments
+  const allowedDepartments = ["CSE", "ENTC", "MECH", "CIVIL", "ELE"];
+
   console.log('[AddStudent] Initial Form Data:', formData);
 
   const handleChange = (e) => {
@@ -57,7 +60,7 @@ const AddStudent = ({ onClose, department }) => {
       // Validate required fields
       const requiredFields = [
         'full_name', 'email', 'registration_number', 'current_semester',
-        'gender', 'Mobile_No', 'Parent_No', 'address', 'abc_id', 'class'
+        'gender', 'Mobile_No', 'Parent_No', 'address', 'abc_id', 'class', 'Department'
       ];
 
       console.log('[AddStudent] Validating required fields:', requiredFields);
@@ -112,7 +115,7 @@ const AddStudent = ({ onClose, department }) => {
         current_semester: parseInt(formData.current_semester),
         Mobile_No: cleanMobileNo,
         Parent_No: cleanParentNo,
-        Department: department,
+        Department: isSuperAdmin ? formData.Department : department,
         previous_cgpa: [0],
         previous_percentages: [0],
         class_rank: 0,
@@ -152,9 +155,18 @@ const AddStudent = ({ onClose, department }) => {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,
-        headers: error.response?.headers
+        headers: error.response?.headers,
+        config: error.config,
+        stack: error.stack
       });
-      toast.error(error.response?.data?.message || 'Failed to register student');
+      
+      // Log the specific error message from the backend if available
+      if (error.response?.data?.message) {
+        console.error('[AddStudent] Backend error message:', error.response.data.message);
+        toast.error(error.response.data.message);
+      } else {
+        toast.error('Failed to register student. Please try again.');
+      }
     } finally {
       setLoading(false);
       console.log('[AddStudent] Form submission completed');
@@ -527,6 +539,25 @@ const AddStudent = ({ onClose, department }) => {
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
+
+            {/* Department Field - Only visible to super admin */}
+            {isSuperAdmin && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Department *</label>
+                <select
+                  name="Department"
+                  required
+                  value={formData.Department}
+                  onChange={handleChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                >
+                  <option value="">Select Department</option>
+                  {allowedDepartments.map((dept) => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           <div className="col-span-2">
