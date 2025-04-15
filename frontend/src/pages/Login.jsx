@@ -39,25 +39,24 @@ const Login = () => {
       console.log("Login response:", {
         status: res.status,
         data: res.data,
-        role: res.data.role,
-        department: res.data.department
+        user: res.data.user
       });
       
-      if (!res.data._id) {
-        throw new Error('Invalid response from server - no user ID');
+      if (!res.data.success || !res.data.user) {
+        throw new Error(res.data.message || 'Invalid response from server');
       }
 
       // Set the auth user with the response data
-      dispatch(setAuthUser(res.data));
+      dispatch(setAuthUser(res.data.user));
       
       // If it's first login, redirect to password update
-      if (res.data.isFirstLogin) {
+      if (res.data.user.isFirstLogin) {
         navigate('/update-password');
         return;
       }
       
       // Role-based navigation
-      switch (res.data.role) {
+      switch (res.data.user.role) {
         case 'super_admin':
           navigate('/admin/dashboard');
           break;

@@ -58,26 +58,11 @@ const AddStudent = ({ onClose, department }) => {
 
     try {
       // Validate required fields
-      const requiredFields = [
-        'full_name', 'email', 'registration_number', 'current_semester',
-        'gender', 'Mobile_No', 'Parent_No', 'address', 'abc_id', 'class', 'Department'
-      ];
-
-      console.log('[AddStudent] Validating required fields:', requiredFields);
+      const requiredFields = ['full_name', 'email', 'registration_number', 'current_semester', 'gender', 'Mobile_No', 'Parent_No', 'address', 'abc_id', 'class'];
       const missingFields = requiredFields.filter(field => !formData[field]);
+      
       if (missingFields.length > 0) {
-        console.log('[AddStudent] Missing required fields:', missingFields);
-        toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`);
-        setLoading(false);
-        return;
-      }
-
-      // Validate email format
-      console.log('[AddStudent] Validating email format');
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        console.log('[AddStudent] Invalid email format:', formData.email);
-        toast.error('Please enter a valid email address');
+        toast.error(`Please fill all required fields: ${missingFields.join(', ')}`);
         setLoading(false);
         return;
       }
@@ -116,6 +101,8 @@ const AddStudent = ({ onClose, department }) => {
         Mobile_No: cleanMobileNo,
         Parent_No: cleanParentNo,
         Department: isSuperAdmin ? formData.Department : department,
+        role: 'student', // Explicitly set role
+        password: 'Student@123', // Set default password
         previous_cgpa: [0],
         previous_percentages: [0],
         class_rank: 0,

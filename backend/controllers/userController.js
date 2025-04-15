@@ -147,8 +147,14 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
+        console.log('[login] Attempting login for email:', email);
+        
         if (!email || !password) {
-            return res.status(400).json({ message: "All fields are required" });
+            console.log('[login] Missing email or password');
+            return res.status(400).json({ 
+                success: false,
+                message: "Email and password are required" 
+            });
         }
         
         // Check in User model first
@@ -156,6 +162,8 @@ export const login = async (req, res) => {
         let role = "student";
         let isAdmin = false;
         let department = null;
+        
+        console.log('[login] User found in User model:', !!user);
         
         // If not found in User model, check in Admin model
         if (!user) {
@@ -165,7 +173,7 @@ export const login = async (req, res) => {
                 role = admin.role;
                 department = admin.department;
                 isAdmin = true;
-                console.log("Found admin:", admin);
+                console.log('[login] Found admin:', { role, department });
             } else {
                 // If not found in Admin model, check in Teacher model
                 const teacher = await Teacher.findOne({ email }).lean();
@@ -173,25 +181,28 @@ export const login = async (req, res) => {
                     user = teacher;
                     role = "teacher";
                     department = teacher.department;
-                    console.log("Found teacher:", teacher); // Debug log
+                    console.log('[login] Found teacher:', { role, department });
                 }
             }
         }
         
         // If user not found in any model
         if (!user) {
+            console.log('[login] User not found in any model');
             return res.status(400).json({
-                message: "Incorrect username or password",
-                success: false
+                success: false,
+                message: "Incorrect email or password"
             });
         }
         
         // Verify password
+        console.log('[login] Verifying password');
         const isPasswordMatch = await bcrypt.compare(password, user.password);
         if (!isPasswordMatch) {
+            console.log('[login] Password mismatch');
             return res.status(400).json({
-                message: "Incorrect username or password",
-                success: false
+                success: false,
+                message: "Incorrect email or password"
             });
         }
         
@@ -201,35 +212,48 @@ export const login = async (req, res) => {
             role: role,
             department: department
         };
-
-        const token = await jwt.sign(tokenData, process.env.SECRET_KEY, { expiresIn: '1d' });
-
-        // Return response with appropriate user data
-        const responseData = {
-            _id: user._id,
-            email: user.email,
-            fullName: user.full_name,
-            profilePhoto: user.photo_url,
-            isFirstLogin: user.isFirstLogin,
-            role: role,
-            department: department,
-            message: "Logged in successfully.",
-            success: true
-        };
-
-        console.log("Login Response Data:", responseData); // Debug log
-
-        return res.status(200)
-            .cookie("token", token, { 
-                maxAge: 1 * 24 * 60 * 60 * 1000, 
-                httpOnly: true, 
-                sameSite: 'strict' 
-            })
-            .json(responseData);
         
+        // Use consistent secret key
+        const token = jwt.sign(tokenData, process.env.SECRET_KEY, { expiresIn: '1d' });
+        
+        console.log('[login] Login successful:', { 
+            userId: user._id, 
+            role, 
+            department 
+        });
+        
+        // Set token in cookie
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 24 * 60 * 60 * 1000 // 1 day
+        });
+        
+        return res.status(200).json({
+            success: true,
+            message: "Login successful",
+            token,
+            user: {
+                _id: user._id,
+                full_name: user.full_name,
+                email: user.email,
+                role,
+                department,
+                isFirstLogin: user.isFirstLogin
+            }
+        });
     } catch (error) {
-        console.error("Login error:", error);
-        return res.status(500).json({ message: "Server error" });
+        console.error('[login] Error:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message
+        });
     }
 };
 
