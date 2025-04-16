@@ -156,7 +156,7 @@ const StudentDetails = () => {
     e.preventDefault();
     try {
       // Use different endpoints based on user role
-      const endpoint = authUser.role === 'department_admin'
+      const endpoint = authUser.role === 'department_admin' || authUser.role === 'super_admin'
         ? `${BASE_URL}/api/v1/admin/student/${studentId}`
         : `${BASE_URL}/api/v1/teacher/student/${studentId}`;
 
@@ -406,7 +406,7 @@ const StudentDetails = () => {
       }
 
       // Update the student's photo_url in the database
-      const endpoint = authUser.role === 'department_admin'
+      const endpoint = authUser.role === 'department_admin' || authUser.role === 'super_admin'
         ? `${BASE_URL}/api/v1/admin/student/${studentId}`
         : `${BASE_URL}/api/v1/teacher/student/${studentId}`;
 

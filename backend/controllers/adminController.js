@@ -407,29 +407,44 @@ export const getTeachersByDepartment = async (req, res) => {
 export const updateStudentDetails = async (req, res) => {
     try {
         const { studentId } = req.params;
+        const userRole = req.role;
         const userDepartment = req.department;
         const updateData = req.body;
-
-        if (!userDepartment) {
-            return res.status(403).json({ 
-                success: false,
-                message: "Access denied. Department information missing." 
-            });
-        }
 
         // Get student
         const student = await User.findById(studentId);
         if (!student) {
-            return res.status(404).json({ message: "Student not found" });
-        }
-
-        // Verify student is from admin's department
-        if (student.Department !== userDepartment) {
-            return res.status(403).json({ 
+            return res.status(404).json({ 
                 success: false,
-                message: "Access denied. Student not in your department" 
+                message: "Student not found" 
             });
         }
+
+        // Check permissions based on role
+        if (userRole === 'department_admin') {
+            // Department admin can only update students in their department
+            if (!userDepartment) {
+                return res.status(403).json({ 
+                    success: false,
+                    message: "Access denied. Department information missing." 
+                });
+            }
+
+            // Verify student is from admin's department
+            if (student.Department !== userDepartment) {
+                return res.status(403).json({ 
+                    success: false,
+                    message: "Access denied. Student not in your department" 
+                });
+            }
+        } else if (userRole !== 'super_admin') {
+            // If not department admin or super admin, deny access
+            return res.status(403).json({ 
+                success: false,
+                message: "Access denied. Insufficient permissions." 
+            });
+        }
+        // Super admin can update any student without department restrictions
 
         // Only allow updating specific fields
         const allowedFields = [
@@ -443,12 +458,18 @@ export const updateStudentDetails = async (req, res) => {
             'semesterProgress',
             'attendance',
             'photo_url',
-            'address'
+            'address',
+            'class',
+            'Department'  // Allow super admin to change department
         ];
 
         const filteredUpdateData = Object.keys(updateData)
             .filter(key => allowedFields.includes(key))
             .reduce((obj, key) => {
+                // If not super admin, don't allow changing Department
+                if (key === 'Department' && userRole !== 'super_admin') {
+                    return obj;
+                }
                 obj[key] = updateData[key];
                 return obj;
             }, {});

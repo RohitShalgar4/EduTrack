@@ -51,7 +51,7 @@ router.put("/department/teachers/:teacherId", isAuthenticated, checkRole("depart
 router.post("/department/teachers/:teacherId/photo", isAuthenticated, checkRole("department_admin"), updateTeacherPhoto);
 
 // Department admin route for updating student details
-router.put("/student/:studentId", isAuthenticated, checkRole("department_admin"), updateStudentDetails);
+router.put("/student/:studentId", isAuthenticated, checkRole(["super_admin", "department_admin"] ), updateStudentDetails);
 
 // Get single teacher details
 router.get("/teacher/:teacherId", isAuthenticated, checkRole(["super_admin", "department_admin"]), getTeacher);
