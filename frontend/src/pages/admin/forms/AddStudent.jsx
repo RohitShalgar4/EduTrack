@@ -37,7 +37,8 @@ const AddStudent = ({ onClose, department }) => {
   const isSuperAdmin = authUser?.role === 'super_admin';
 
   // Define allowed departments
-  const allowedDepartments = ["CSE", "ENTC", "MECH", "CIVIL", "ELE"];
+  const allowedDepartments = ["CSE", "ENTC", "ELE", "MECH", "CIVIL"];
+  const allowedClasses = ["FY", "SY", "TY", "BE"];
 
   console.log('[AddStudent] Initial Form Data:', formData);
 
@@ -520,14 +521,18 @@ const AddStudent = ({ onClose, department }) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700">Class *</label>
-              <input
-                type="text"
+              <select
                 name="class"
                 required
                 value={formData.class}
                 onChange={handleChange}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
+              >
+                <option value="">Select Class</option>
+                {allowedClasses.map((cls) => (
+                  <option key={cls} value={cls}>{cls}</option>
+                ))}
+              </select>
             </div>
 
             {/* Department Field - Only visible to super admin */}

@@ -938,6 +938,319 @@ export const deleteTeacher = async (req, res) => {
     }
 };
 
+// Export report generation
+export const generateExportReport = async (req, res) => {
+  try {
+    const { exportType, filterValue, selectedFields, department } = req.body;
+    const userRole = req.role;
+    const userDepartment = req.department;
+
+    if (!exportType || !selectedFields || selectedFields.length === 0) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    // Check permissions for college-wise export
+    if (exportType === 'college' && userRole !== 'super_admin') {
+      return res.status(403).json({ message: 'Only super admin can access college-wise export' });
+    }
+
+    let query = {};
+    switch (exportType) {
+      case 'student':
+        if (!filterValue) {
+          return res.status(400).json({ message: 'Student ID is required' });
+        }
+        query._id = filterValue;
+        break;
+
+      case 'class':
+        if (!filterValue) {
+          return res.status(400).json({ message: 'Class is required' });
+        }
+        if (!department) {
+          return res.status(400).json({ message: 'Department is required for class-wise export' });
+        }
+        query.class = filterValue;
+        query.Department = department;
+        break;
+
+      case 'department':
+        if (!filterValue) {
+          return res.status(400).json({ message: 'Department is required' });
+        }
+        // Check if user has permission to access this department
+        if (userRole !== 'super_admin' && filterValue !== userDepartment) {
+          return res.status(403).json({ message: 'You can only access your department data' });
+        }
+        query.Department = filterValue;
+        break;
+
+      case 'college':
+        // No additional filter needed for college-wide report
+        // Permission check is already done above
+        break;
+
+      default:
+        return res.status(400).json({ message: 'Invalid export type' });
+    }
+
+    // Add department filter for non-super admin users
+    if (userRole !== 'super_admin') {
+      query.Department = userDepartment;
+    }
+
+    // Fetch students based on the query
+    const students = await User.find(query).select('-password');
+
+    // Format the data based on selected fields
+    const formattedData = students.map(student => {
+      const data = {};
+      
+      // Always include basic information
+      data.full_name = student.full_name;
+      data.registration_number = student.registration_number;
+      data.Department = student.Department;
+      data.current_semester = student.current_semester;
+      data.class = student.class;
+      data.Mobile_No = student.Mobile_No || '';
+      data.Parent_No = student.Parent_No || '';
+      data.address = student.address || '';
+      data.gender = student.gender || '';
+
+      // Handle attendance
+      if (selectedFields.includes('overall_attendance') || selectedFields.includes('semester_attendance')) {
+        const attendanceData = student.attendance || [];
+        const currentSem = student.current_semester || 1;
+
+        // First process semester-wise attendance
+        const semesterAttendances = [];
+        for (let sem = 1; sem < currentSem; sem++) {
+          const semAttendance = attendanceData.find(entry => entry.semester === sem);
+          const attendanceValue = semAttendance && semAttendance.average_attendance 
+            ? semAttendance.average_attendance 
+            : 0;
+
+          // Store for overall calculation
+          semesterAttendances.push(attendanceValue);
+
+          // Add to semester-wise attendance if selected
+          if (selectedFields.includes('semester_attendance')) {
+            data[`sem${sem}_attendance`] = attendanceValue.toFixed(2);
+          }
+        }
+
+        // Calculate overall attendance from semester attendances
+        if (selectedFields.includes('overall_attendance')) {
+          const validAttendances = semesterAttendances.filter(att => att > 0);
+          if (validAttendances.length > 0) {
+            const average = validAttendances.reduce((sum, att) => sum + att, 0) / validAttendances.length;
+            data.overall_attendance = average.toFixed(2);
+          } else {
+            data.overall_attendance = '0.00';
+          }
+        }
+      }
+
+      // Handle semester-wise data
+      if (selectedFields.includes('semester_results')) {
+        const currentSem = student.current_semester || 1;
+        for (let sem = 1; sem < currentSem; sem++) {
+          const percentage = student.previous_percentages?.[sem-1];
+          const sgpa = student.previous_cgpa?.[sem-1];
+          
+          data[`sem${sem}_percentage`] = percentage ? percentage.toFixed(2) : '0.00';
+          data[`sem${sem}_sgpa`] = sgpa ? sgpa.toFixed(2) : '0.00';
+        }
+      }
+
+      // Handle CGPA
+      if (selectedFields.includes('cgpa')) {
+        const cgpa = student.previous_cgpa?.length > 0 
+          ? student.previous_cgpa[student.previous_cgpa.length - 1] 
+          : 0;
+        data.cgpa = cgpa.toFixed(2);
+      }
+
+      // Handle achievements
+      if (selectedFields.includes('achievements')) {
+        data.achievements = Array.isArray(student.achievements) 
+          ? student.achievements.join(', ') 
+          : '';
+      }
+
+      // Ensure all selected fields have values
+      selectedFields.forEach(field => {
+        if (data[field] === undefined || data[field] === '') {
+          data[field] = '0.00';
+        }
+      });
+
+      return data;
+    });
+
+    res.status(200).json({
+      success: true,
+      data: formattedData
+    });
+  } catch (error) {
+    console.error('Error generating export report:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Get all students for dropdown (filtered by department for non-super admin)
+export const getStudentsForExport = async (req, res) => {
+  try {
+    const userRole = req.role;
+    const userDepartment = req.department;
+
+    let query = {};
+    if (userRole !== 'super_admin') {
+      query.Department = userDepartment;
+    }
+
+    const students = await User.find(query)
+      .select('full_name registration_number Department')
+      .sort({ full_name: 1 });
+
+    res.status(200).json({
+      success: true,
+      data: students
+    });
+  } catch (error) {
+    console.error('Error fetching students for export:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Get all departments (filtered for non-super admin)
+export const getDepartmentsForExport = async (req, res) => {
+  try {
+    const userRole = req.role;
+    const userDepartment = req.department;
+
+    if (userRole === 'super_admin') {
+      // Get all departments
+      const departments = await User.distinct('Department');
+      res.status(200).json({
+        success: true,
+        data: departments
+      });
+    } else {
+      // Return only user's department
+      res.status(200).json({
+        success: true,
+        data: [userDepartment]
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching departments for export:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Get all classes (super admin only)
+export const getAllClasses = async (req, res) => {
+    try {
+        console.log('Fetching all classes');
+        
+        // Get all students and extract unique classes
+        const students = await User.find().select('class');
+        const classes = [...new Set(students.map(student => student.class))].filter(Boolean);
+        
+        console.log(`Found ${classes.length} unique classes`);
+        
+        return res.status(200).json({
+            success: true,
+            data: classes
+        });
+    } catch (error) {
+        console.error('Error in getAllClasses:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch classes",
+            error: error.message
+        });
+    }
+};
+
+// Get classes by department (department admin only)
+export const getClassesByDepartment = async (req, res) => {
+    try {
+        const adminId = req.id;
+        const admin = await Admin.findById(adminId);
+        
+        if (!admin || !admin.department) {
+            return res.status(400).json({
+                success: false,
+                message: "Department information not found"
+            });
+        }
+        
+        console.log(`Fetching classes for department: ${admin.department}`);
+        
+        // Get students from the admin's department and extract unique classes
+        const students = await User.find({ Department: admin.department }).select('class');
+        const classes = [...new Set(students.map(student => student.class))].filter(Boolean);
+        
+        console.log(`Found ${classes.length} unique classes in department ${admin.department}`);
+        
+        return res.status(200).json({
+            success: true,
+            data: classes
+        });
+    } catch (error) {
+        console.error('Error in getClassesByDepartment:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch department classes",
+            error: error.message
+        });
+    }
+};
+
+// Get students by class
+export const getStudentsByClass = async (req, res) => {
+    try {
+        const { class: className } = req.params;
+        const adminId = req.id;
+        const admin = await Admin.findById(adminId);
+        
+        if (!admin) {
+            return res.status(400).json({
+                success: false,
+                message: "Admin not found"
+            });
+        }
+        
+        console.log(`Fetching students for class: ${className}`);
+        
+        // Build query based on admin role
+        let query = { class: className };
+        if (admin.role === 'department_admin') {
+            query.Department = admin.department;
+        }
+        
+        const students = await User.find(query)
+            .select('-password')
+            .sort({ full_name: 1 });
+        
+        console.log(`Found ${students.length} students in class ${className}`);
+        
+        return res.status(200).json({
+            success: true,
+            students: students
+        });
+    } catch (error) {
+        console.error('Error in getStudentsByClass:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch students by class",
+            error: error.message
+        });
+    }
+};
+
 // module.exports = {
 //     addAdmin,
 //     getAllAdmins,

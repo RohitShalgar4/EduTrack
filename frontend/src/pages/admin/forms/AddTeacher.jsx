@@ -21,7 +21,7 @@ const AddTeacher = ({ onClose, department }) => {
     qualification: ''
   });
 
-  const allowedDepartments = ["CSE", "ENTC", "MECH", "CIVIL", "ELE"];
+  const allowedDepartments = ["CSE", "ENTC", "ELE", "MECH", "CIVIL"];
 
   console.log('[AddTeacher] Initial Form Data:', formData);
   console.log('[AddTeacher] User Role:', authUser?.role);

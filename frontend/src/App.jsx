@@ -14,6 +14,7 @@ import UpdatePasswordPopup from './components/UpdatePasswordPopup';
 import SuperAdminDashboard from './pages/admin/SuperAdminDashboard';
 import MainLayout from './components/Layout';
 import AdminDetails from './pages/admin/AdminDetails';
+import ExportPage from './pages/admin/ExportPage';
 
 function App() {
   return (
@@ -69,6 +70,13 @@ function App() {
           <Route path="/admin/:adminId" element={
             <ProtectedRoute allowedRoles={['super_admin']}>
               <AdminDetails />
+            </ProtectedRoute>
+          } />
+
+          {/* Export Route */}
+          <Route path="/export" element={
+            <ProtectedRoute allowedRoles={['teacher', 'department_admin', 'super_admin']}>
+              <ExportPage />
             </ProtectedRoute>
           } />
         </Route>

@@ -3,12 +3,14 @@ import axios from 'axios';
 import { BASE_URL } from '../../main';
 import { Trash2, Eye, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useSelector } from 'react-redux';
 
 const StudentList = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState(null);
+  const authUser = useSelector((state) => state.user.authUser);
 
   useEffect(() => {
     fetchStudents();
@@ -16,13 +18,22 @@ const StudentList = () => {
 
   const fetchStudents = async () => {
     try {
-      const response = await axios.get(`${BASE_URL}/api/v1/admin/students`, {
+      const endpoint = authUser?.role === 'super_admin' 
+        ? `${BASE_URL}/api/v1/admin/all/students`
+        : `${BASE_URL}/api/v1/admin/department/students`;
+
+      const response = await axios.get(endpoint, {
         withCredentials: true
       });
-      setStudents(response.data.students);
+      
+      if (response.data.success) {
+        setStudents(response.data.students);
+      } else {
+        toast.error(response.data.message || 'Failed to fetch students');
+      }
     } catch (error) {
       console.error('Error fetching students:', error);
-      toast.error('Failed to fetch students');
+      toast.error(error.response?.data?.message || 'Failed to fetch students');
     } finally {
       setLoading(false);
     }

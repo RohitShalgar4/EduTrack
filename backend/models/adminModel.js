@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const adminSchema = new mongoose.Schema({
+const adminModel = new mongoose.Schema({
     full_name: {
         type: String,
         required: true
@@ -18,22 +18,26 @@ const adminSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    phone_number: {
+        type: String,
+        required: true
+    },
     role: {
         type: String,
-        enum: ['super_admin', 'department_admin'],
+        enum: ["super_admin", "department_admin"],
         required: true
     },
     department: {
         type: String,
-        enum: ["CSE", "ENTC", "MECH", "CIVIL", "ELE"],
+        enum: ["CSE", "ENTC", "ELE", "MECH", "CIVIL"],
         required: function() {
             return this.role === 'department_admin';
         }
     },
-    phone_number: {
+    photo_url: {
         type: String,
         required: true
     }
 }, { timestamps: true });
 
-export const Admin = mongoose.model("Admin", adminSchema); 
+export const Admin = mongoose.model("Admin", adminModel); 

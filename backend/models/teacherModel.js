@@ -18,10 +18,14 @@ const teacherSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    Mobile_No: {
+        type: String,
+        required: true
+    },
     department: {
         type: String,
-        enum: ["CSE", "ENTC", "MECH", "CIVIL", "ELE"],
-        required: true
+        required: true,
+        enum: ["CSE", "ENTC", "ELE", "MECH", "CIVIL"]
     },
     qualification: {
         type: String,
@@ -37,6 +41,11 @@ const teacherSchema = new mongoose.Schema({
     },
     photo_url: {
         type: String,
+        required: true
+    },
+    subjects: {
+        type: [String],
+        required: true
     }
 }, { timestamps: true });
 

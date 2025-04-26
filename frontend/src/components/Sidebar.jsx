@@ -7,7 +7,11 @@ import {
   FileText, 
   Settings, 
   LogOut,
-  Menu
+  Menu,
+  Users,
+  BookOpen,
+  UserPlus,
+  Download
 } from 'lucide-react';
 import { setAuthUser, logoutUser } from '../redux/userSlice'; // Adjust the import path
 import { BASE_URL } from '../main';
@@ -18,8 +22,8 @@ const SideBar = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const authUser = useSelector((state) => state.user.authUser);
-  const [isOpen, setIsOpen] = useState(false); // Sidebar starts closed by default
+  const { authUser } = useSelector((state) => state.user);
+  const [isOpen, setIsOpen] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   
   // Handle animation states
@@ -79,6 +83,49 @@ const SideBar = ({ children }) => {
     }
   };
 
+  const menuItems = [
+    {
+      title: 'Dashboard',
+      icon: <Home className="w-5 h-5" />,
+      path: '/dashboard',
+      roles: ['student', 'teacher', 'department_admin', 'super_admin']
+    },
+    {
+      title: 'Students',
+      icon: <Users className="w-5 h-5" />,
+      path: '/students',
+      roles: ['teacher', 'department_admin', 'super_admin']
+    },
+    {
+      title: 'Teachers',
+      icon: <UserPlus className="w-5 h-5" />,
+      path: '/teachers',
+      roles: ['department_admin', 'super_admin']
+    },
+    {
+      title: 'Courses',
+      icon: <BookOpen className="w-5 h-5" />,
+      path: '/courses',
+      roles: ['teacher', 'department_admin', 'super_admin']
+    },
+    {
+      title: 'Export Data',
+      icon: <Download className="w-5 h-5" />,
+      path: '/export',
+      roles: ['teacher', 'department_admin', 'super_admin']
+    },
+    {
+      title: 'Settings',
+      icon: <Settings className="w-5 h-5" />,
+      path: '/settings',
+      roles: ['student', 'teacher', 'department_admin', 'super_admin']
+    }
+  ];
+
+  const filteredMenuItems = menuItems.filter(item => 
+    item.roles.includes(authUser?.role)
+  );
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <div className="flex flex-1 relative">
@@ -104,35 +151,16 @@ const SideBar = ({ children }) => {
           {/* Navigation links - centered */}
           <div className="p-4 flex-grow">
             <nav className="space-y-3 flex flex-col items-center">
-              <Link
-                to="/dashboard"
-                className={`flex items-center gap-3 p-3 rounded-lg transition-colors w-full justify-center ${isActive('/dashboard')}`}
-              >
-                <Home className="w-5 h-5" />
-                <span>Dashboard</span>
-              </Link>
-              <Link
-                to="/achievements"
-                className={`flex items-center gap-3 p-3 rounded-lg transition-colors w-full justify-center ${isActive('/achievements')}`}
-              >
-                <Award className="w-5 h-5" />
-                <span>Achievements</span>
-              </Link>
-              <Link
-                to="/reports"
-                className={`flex items-center gap-3 p-3 rounded-lg transition-colors w-full justify-center ${isActive('/reports')}`}
-              >
-                <FileText className="w-5 h-5" />
-                <span>Reports</span>
-              </Link>
-              
-              {/* <Link
-                to="/settings"
-                className={`flex items-center gap-3 p-3 rounded-lg transition-colors w-full justify-center ${isActive('/settings')}`}
-              >
-                <Settings className="w-5 h-5" />
-                <span>Settings</span>
-              </Link> */}
+              {filteredMenuItems.map((item, index) => (
+                <Link
+                  key={index}
+                  to={item.path}
+                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors w-full justify-center ${isActive(item.path)}`}
+                >
+                  {item.icon}
+                  {isOpen && <span>{item.title}</span>}
+                </Link>
+              ))}
               
               {/* Logout button inline with other links */}
               <button
@@ -140,7 +168,7 @@ const SideBar = ({ children }) => {
                 className="flex items-center gap-3 p-3 rounded-lg text-blue-50 hover:bg-red-500/80 transition-colors w-full justify-center mt-6"
               >
                 <LogOut className="w-5 h-5" />
-                <span>Logout</span>
+                {isOpen && <span>Logout</span>}
               </button>
             </nav>
           </div>

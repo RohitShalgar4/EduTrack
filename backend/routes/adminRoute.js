@@ -15,7 +15,13 @@ import {
     updateAdminDetails,
     importStudentsFromCSV,
     deleteStudent,
-    deleteTeacher  // New function for deleting teachers
+    deleteTeacher,  // New function for deleting teachers
+    generateExportReport,
+    getStudentsForExport,
+    getDepartmentsForExport,
+    getAllClasses,    // New function for getting all classes
+    getClassesByDepartment,  // New function for getting department classes
+    getStudentsByClass  // New function for getting students by class
 } from "../controllers/adminController.js";
 import isAuthenticated from "../middleware/isAuthenticated.js";
 import checkRole from "../middleware/checkRole.js";
@@ -80,5 +86,15 @@ router.delete("/students/:studentId", isAuthenticated, checkRole(["super_admin",
 
 // New route for deleting a teacher
 router.delete("/teachers/:teacherId", isAuthenticated, checkRole(["super_admin", "department_admin"]), deleteTeacher);
+
+// Export routes
+router.post('/export/generate', isAuthenticated, checkRole(["super_admin", "department_admin", "teacher"]), generateExportReport);
+router.get('/export/students', isAuthenticated, checkRole(["super_admin", "department_admin", "teacher"]), getStudentsForExport);
+router.get('/export/departments', isAuthenticated, checkRole(["super_admin", "department_admin", "teacher"]), getDepartmentsForExport);
+
+// Class-related routes
+router.get("/all/classes", isAuthenticated, checkRole("super_admin"), getAllClasses);
+router.get("/department/classes", isAuthenticated, checkRole("department_admin"), getClassesByDepartment);
+router.get("/class/:class/students", isAuthenticated, checkRole(["super_admin", "department_admin"]), getStudentsByClass);
 
 export default router; 

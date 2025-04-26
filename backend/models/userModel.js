@@ -37,11 +37,13 @@ const userModel = new mongoose.Schema({
     },
     Department: {
         type: String,
-        required: true
+        required: true,
+        enum: ["CSE", "ENTC", "ELE", "MECH", "CIVIL"]
     },
     class: {
         type: String,
-        required: true
+        required: true,
+        enum: ["FY", "SY", "TY", "BE"]
     },
     abc_id: {
         type: String,
