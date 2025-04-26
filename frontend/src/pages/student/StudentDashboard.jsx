@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setStudentData, clearStudentData } from '../../redux/studentSlice';
 import axios from 'axios';
@@ -177,7 +177,8 @@ const StudentDashboard = () => {
       ['Current CGPA:', String(student.cgpa || '0.00')],
       ['Current SGPA:', String(student.sgpa || '0.00')],
       ['Class Rank:', String(student.class_rank || 'N/A')],
-      ['Overall Attendance:', `${String(student.attendance || '0')}%`]
+      ['Current Semester Attendance:', `${String(student.attendance || '0')}%`],
+      ['Overall Attendance:', `${String(student.overall_attendance || '0')}%`]
     ];
 
     statsData.forEach((stat, index) => {
@@ -190,7 +191,7 @@ const StudentDashboard = () => {
     });
 
     // Previous Academic Performance section
-    const prevAcadY = statsStartY + 40;
+    const prevAcadY = statsStartY + 60;
     doc.setFillColor(240, 247, 255);
     doc.rect(margin, prevAcadY, contentWidth, 10, 'F');
     doc.setFontSize(14);
@@ -219,11 +220,42 @@ const StudentDashboard = () => {
       doc.text(`Semester ${index + 1}: ${percentage}%`, margin + (contentWidth / 2) + 10, historyStartY + ((index + 1) * 12));
     });
 
-    // Achievements section
-    const achieveY = historyStartY + Math.max(
+    // Attendance Records section
+    const attendanceY = historyStartY + Math.max(
       (student.previous_cgpa?.length || 0),
       (student.previous_percentages?.length || 0)
     ) * 12 + 30;
+
+    doc.setFillColor(240, 247, 255);
+    doc.rect(margin, attendanceY, contentWidth, 10, 'F');
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(59, 130, 246);
+    doc.text('ATTENDANCE RECORDS', margin + 5, attendanceY + 8);
+
+    // Semester-wise Attendance
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    const attendanceStartY = attendanceY + 25;
+    
+    // Table header
+    doc.setFont(undefined, 'bold');
+    doc.text('Semester', margin, attendanceStartY);
+    doc.text('Attendance %', margin + 60, attendanceStartY);
+    
+    // Table rows
+    doc.setFont(undefined, 'normal');
+    [1, 2, 3, 4, 5, 6, 7, 8].forEach((semester, index) => {
+      const semesterData = student.attendanceData?.find(
+        (entry) => entry.semester === semester
+      );
+      const y = attendanceStartY + ((index + 1) * 12);
+      doc.text(`Semester ${semester}`, margin, y);
+      doc.text(semesterData ? `${semesterData.average_attendance}%` : 'N/A', margin + 60, y);
+    });
+
+    // Achievements section
+    const achieveY = attendanceStartY + (8 * 12) + 20;
 
     doc.setFillColor(240, 247, 255);
     doc.rect(margin, achieveY, contentWidth, 10, 'F');
@@ -267,6 +299,64 @@ const StudentDashboard = () => {
 
     // Save the PDF
     doc.save(`${String(student.full_name)}-academic-profile.pdf`);
+  };
+
+  // Add this function to prepare attendance data for the chart
+  const prepareAttendanceData = () => {
+    if (!student?.attendanceData) return [];
+    
+    return student.attendanceData
+      .filter(record => record.average_attendance > 0)
+      .map(record => ({
+        name: `Semester ${record.semester}`,
+        attendance: record.average_attendance
+      }))
+      .sort((a, b) => {
+        const semA = parseInt(a.name.split(' ')[1]);
+        const semB = parseInt(b.name.split(' ')[1]);
+        return semA - semB;
+      });
+  };
+
+  // Replace the monthly attendance trend with semester attendance trend
+  const renderAttendanceTrend = () => {
+    const attendanceData = prepareAttendanceData();
+    
+    if (attendanceData.length === 0) {
+      return (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Attendance Trend</h3>
+          <p className="text-gray-500 text-center">No attendance data available</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Semester Attendance Trend</h3>
+        <div className="h-64">
+          <LineChart
+            width={600}
+            height={250}
+            data={attendanceData}
+            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis domain={[0, 100]} />
+            <Tooltip />
+            <Legend />
+            <Line
+              type="monotone"
+              dataKey="attendance"
+              name="Attendance %"
+              stroke="#3B82F6"
+              activeDot={{ r: 8 }}
+            />
+          </LineChart>
+        </div>
+      </div>
+    );
   };
 
   if (!student || !authUser) {
@@ -452,37 +542,73 @@ const StudentDashboard = () => {
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm max-w-full overflow-hidden">
-          <h2 className="text-lg font-semibold mb-4">Attendance Trend</h2>
-          <div className="overflow-x-auto">
-            {student.attendanceData?.length > 0 ? (
-            <LineChart width={500} height={300} data={student.attendanceData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="attendance" stroke="#3B82F6" name="Attendance %" />
-            </LineChart>
-            ) : (
-              <p className="text-gray-500 text-center py-4">No attendance data available</p>
-            )}
-          </div>
+          {renderAttendanceTrend()}
         </div>
       </div>
 
-      {/* Achievements */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h2 className="text-xl font-semibold mb-4">Achievements</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {student.achievements && student.achievements.length > 0 ? (
-            student.achievements.map((achievement, index) => (
-              <div key={index} className="p-4 bg-gray-50 rounded-lg">
-                <p className="font-medium text-gray-800">{achievement}</p>
-              </div>
-            ))
-          ) : (
-            <p className="text-gray-500 col-span-2 text-center py-4">No achievements available</p>
-          )}
+      {/* Achievements and Attendance Overview Side by Side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Achievements */}
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <h2 className="text-xl font-semibold mb-4">Achievements</h2>
+          <div className="grid grid-cols-1 gap-4">
+            {student.achievements && student.achievements.length > 0 ? (
+              student.achievements.map((achievement, index) => (
+                <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                  <p className="font-medium text-gray-800">{achievement}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500 text-center py-4">No achievements available</p>
+            )}
+          </div>
+        </div>
+
+        {/* Attendance Overview */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-bold mb-4">Attendance Overview</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold text-blue-700">Last Semester</h3>
+              <p className="text-3xl font-bold text-blue-900">
+                {student?.attendanceData?.find(record => record.semester === (student.current_semester - 1))?.average_attendance || 0}%
+              </p>
+            </div>
+            <div className="bg-green-50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold text-green-700">Overall Attendance</h3>
+              <p className="text-3xl font-bold text-green-900">{student?.overall_attendance || 0}%</p>
+            </div>
+          </div>
+          
+          {/* Semester-wise Attendance Table */}
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold mb-4">Semester-wise Attendance</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white border border-gray-200">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="py-2 px-4 border-b text-left">Semester</th>
+                    <th className="py-2 px-4 border-b text-left">Attendance %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from({ length: student.current_semester - 1 }, (_, i) => i + 1).map((semester) => {
+                    const semesterData = student?.attendanceData?.find(
+                      (entry) => entry.semester === semester
+                    );
+                    return (
+                      <tr key={semester} className="hover:bg-gray-50">
+                        <td className="py-2 px-4 border-b">Semester {semester}</td>
+                        <td className="py-2 px-4 border-b">
+                          {semesterData ? `${semesterData.average_attendance}%` : 'N/A'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>

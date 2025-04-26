@@ -26,11 +26,15 @@ export const getStudentData = async (req, res) => {
       ? student.previous_cgpa[student.previous_cgpa.length - 1]
       : 0;
 
-    // Calculate the overall attendance percentage
-    const totalAttendance = student.attendance.reduce((sum, entry) => sum + entry.attendance, 0);
+    // Calculate the overall attendance percentage based on semester attendance
+    const totalAttendance = student.attendance.reduce((sum, entry) => sum + entry.average_attendance, 0);
     const averageAttendance = student.attendance.length > 0
       ? (totalAttendance / student.attendance.length).toFixed(2)
       : 0;
+
+    // Get current semester attendance
+    const currentSemesterAttendance = student.attendance.find(entry => entry.semester === student.current_semester);
+    const currentAttendance = currentSemesterAttendance ? currentSemesterAttendance.average_attendance : 0;
 
     // Map the response to match the frontend's expected structure
     const studentData = {
@@ -47,11 +51,12 @@ export const getStudentData = async (req, res) => {
       sgpa: currentSgpa,
       class: student.class,
       class_rank: student.class_rank,
-      attendance: averageAttendance,
+      attendance: currentAttendance, // Current semester attendance
+      overall_attendance: averageAttendance, // Overall attendance across all semesters
       previous_cgpa: student.previous_cgpa,
       abc_id: student.abc_id,
       previous_percentages: student.previous_percentages,
-      attendanceData: student.attendance,
+      attendanceData: student.attendance, // Full attendance data with semester information
       semesterProgress: student.semesterProgress,
       achievements: student.achievements,
       photo_url: student.photo_url

@@ -441,9 +441,17 @@ export const updateStudentDetails = async (req, res) => {
         const userDepartment = req.department;
         const updateData = req.body;
 
+        console.log('[updateStudentDetails] Updating student:', {
+            studentId,
+            userRole,
+            userDepartment,
+            updateData
+        });
+
         // Get student
         const student = await User.findById(studentId);
         if (!student) {
+            console.log('[updateStudentDetails] Student not found:', studentId);
             return res.status(404).json({ 
                 success: false,
                 message: "Student not found" 
@@ -454,6 +462,7 @@ export const updateStudentDetails = async (req, res) => {
         if (userRole === 'department_admin') {
             // Department admin can only update students in their department
             if (!userDepartment) {
+                console.log('[updateStudentDetails] Department admin without department');
                 return res.status(403).json({ 
                     success: false,
                     message: "Access denied. Department information missing." 
@@ -462,6 +471,10 @@ export const updateStudentDetails = async (req, res) => {
 
             // Verify student is from admin's department
             if (student.Department !== userDepartment) {
+                console.log('[updateStudentDetails] Access denied - student not in department:', {
+                    studentDepartment: student.Department,
+                    userDepartment
+                });
                 return res.status(403).json({ 
                     success: false,
                     message: "Access denied. Student not in your department" 
@@ -469,6 +482,7 @@ export const updateStudentDetails = async (req, res) => {
             }
         } else if (userRole !== 'super_admin') {
             // If not department admin or super admin, deny access
+            console.log('[updateStudentDetails] Access denied - insufficient permissions:', userRole);
             return res.status(403).json({ 
                 success: false,
                 message: "Access denied. Insufficient permissions." 
@@ -504,6 +518,38 @@ export const updateStudentDetails = async (req, res) => {
                 return obj;
             }, {});
 
+        // Validate attendance data if provided
+        if (filteredUpdateData.attendance) {
+            // Ensure attendance data is an array
+            if (!Array.isArray(filteredUpdateData.attendance)) {
+                console.log('[updateStudentDetails] Invalid attendance data format');
+                return res.status(400).json({
+                    success: false,
+                    message: "Attendance data must be an array"
+                });
+            }
+
+            // Validate each attendance entry
+            for (const entry of filteredUpdateData.attendance) {
+                if (!entry.semester || typeof entry.semester !== 'number' || entry.semester < 1 || entry.semester > 8) {
+                    console.log('[updateStudentDetails] Invalid semester in attendance data:', entry);
+                    return res.status(400).json({
+                        success: false,
+                        message: "Invalid semester in attendance data. Must be a number between 1 and 8."
+                    });
+                }
+
+                if (!entry.average_attendance || typeof entry.average_attendance !== 'number' || 
+                    entry.average_attendance < 0 || entry.average_attendance > 100) {
+                    console.log('[updateStudentDetails] Invalid average_attendance in attendance data:', entry);
+                    return res.status(400).json({
+                        success: false,
+                        message: "Invalid average_attendance in attendance data. Must be a number between 0 and 100."
+                    });
+                }
+            }
+        }
+
         // Update student
         const updatedStudent = await User.findByIdAndUpdate(
             studentId,
@@ -511,13 +557,22 @@ export const updateStudentDetails = async (req, res) => {
             { new: true }
         ).select('-password');
 
+        console.log('[updateStudentDetails] Student updated successfully:', {
+            id: updatedStudent._id,
+            name: updatedStudent.full_name
+        });
+
         return res.status(200).json({
             success: true,
             message: "Student details updated successfully",
             student: updatedStudent
         });
     } catch (error) {
-        console.error('Error in updateStudentDetails:', error);
+        console.error('[updateStudentDetails] Error:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
         return res.status(500).json({ 
             success: false,
             message: "Server error",
@@ -729,7 +784,10 @@ export const importStudentsFromCSV = async (req, res) => {
                     previous_cgpa: [0],
                     previous_percentages: [0],
                     class_rank: 0,
-                    attendance: [],
+                    attendance: [{
+                        semester: current_semester,
+                        average_attendance: 0
+                    }],
                     semesterProgress: [],
                     achievements: [],
                     photo_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(row.full_name)}&background=random`,

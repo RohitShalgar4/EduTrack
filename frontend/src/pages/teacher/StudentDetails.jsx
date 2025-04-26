@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { BASE_URL } from '../../main';
 import { useSelector } from 'react-redux';
-import { Calendar, Plus, Trash2, Upload } from 'lucide-react';
+import { Plus, Trash2, Upload } from 'lucide-react';
 
 const StudentDetails = () => {
   const { studentId } = useParams();
@@ -14,8 +14,8 @@ const StudentDetails = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [newAttendance, setNewAttendance] = useState({
-    month: '',
-    attendance: ''
+    semester: '',
+    average_attendance: ''
   });
   const authUser = useSelector((state) => state.user.authUser);
   const [formData, setFormData] = useState({
@@ -28,7 +28,8 @@ const StudentDetails = () => {
     address: '',
     class: '',
     achievements: [],
-    current_semester: ''
+    current_semester: '',
+    semesterProgress: []
   });
   const [isUploading, setIsUploading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -78,7 +79,8 @@ const StudentDetails = () => {
         address: studentData.address || '',
         class: studentData.class || '',
         achievements: achievementsArray,
-        current_semester: studentData.current_semester ? parseInt(studentData.current_semester) : ''
+        current_semester: studentData.current_semester ? parseInt(studentData.current_semester) : '',
+        semesterProgress: studentData.semesterProgress || []
       });
     } catch (error) {
       console.error('Error fetching student details:', error);
@@ -94,18 +96,6 @@ const StudentDetails = () => {
     setFormData(prev => ({
       ...prev,
       [name]: value
-    }));
-  };
-
-  const handleAttendanceChange = (index, value) => {
-    const newAttendance = [...formData.attendance];
-    newAttendance[index] = {
-      ...newAttendance[index],
-      attendance: parseFloat(value) || 0
-    };
-    setFormData(prev => ({
-      ...prev,
-      attendance: newAttendance
     }));
   };
 
@@ -155,7 +145,6 @@ const StudentDetails = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Use different endpoints based on user role
       const endpoint = authUser.role === 'department_admin' || authUser.role === 'super_admin'
         ? `${BASE_URL}/api/v1/admin/student/${studentId}`
         : `${BASE_URL}/api/v1/teacher/student/${studentId}`;
@@ -176,7 +165,7 @@ const StudentDetails = () => {
         percentage: parseFloat(percentage) || 0
       }));
 
-      // Create a complete payload with all fields
+      // Create a complete payload with all fields matching the backend model
       const payload = {
         Mobile_No: formData.Mobile_No || '',
         Parent_No: formData.Parent_No || '',
@@ -192,10 +181,10 @@ const StudentDetails = () => {
               .map(achievement => achievement.trim())
           : [],
         current_semester: currentSemester,
-        semesterProgress: semesterProgress // This will be an array of objects with semester and percentage
+        semesterProgress: semesterProgress
       };
 
-      console.log('Submitting payload:', payload); // For debugging
+      console.log('Submitting payload:', payload);
 
       await axios.put(
         endpoint,
@@ -208,9 +197,7 @@ const StudentDetails = () => {
         }
       );
       
-      // Refetch student details to ensure we have the latest data
       await fetchStudentDetails();
-      
       setIsEditing(false);
       toast.success('Student details updated successfully');
     } catch (error) {
@@ -219,53 +206,61 @@ const StudentDetails = () => {
     }
   };
 
-  // Modify getMonthOptions to show abbreviated months
-  const getMonthOptions = () => {
-    const months = [];
-    for (let month = 1; month <= 12; month++) {
-      const date = new Date(2024, month - 1);
-      const monthName = date.toLocaleString('en-US', { month: 'short' }); // Changed to 'short' for abbreviated months
-      const value = monthName; // Use the abbreviated month name as value
-      months.push({ value, label: monthName });
+  // Modify getSemesterOptions to show semesters up to current semester minus 1
+  const getSemesterOptions = () => {
+    const semesters = [];
+    const currentSem = parseInt(formData.current_semester) || 0;
+    // Only show semesters up to current semester minus 1
+    for (let sem = 1; sem < currentSem; sem++) {
+      // Check if attendance already exists for this semester
+      const semesterExists = formData.attendance.some(record => record.semester === sem);
+      if (!semesterExists) {
+        semesters.push({ value: sem, label: `Semester ${sem}` });
+      }
     }
-    return months;
+    return semesters;
   };
 
-  // Modify handleAddAttendance to handle abbreviated month format
+  // Modify handleAddAttendance to handle semester format
   const handleAddAttendance = () => {
-    if (!newAttendance.month || !newAttendance.attendance) {
-      toast.error('Please fill in both month and attendance percentage');
+    if (!newAttendance.semester || !newAttendance.average_attendance) {
+      toast.error('Please fill in both semester and attendance percentage');
       return;
     }
 
-    if (parseFloat(newAttendance.attendance) < 0 || parseFloat(newAttendance.attendance) > 100) {
+    if (parseFloat(newAttendance.average_attendance) < 0 || parseFloat(newAttendance.average_attendance) > 100) {
       toast.error('Attendance percentage must be between 0 and 100');
       return;
     }
 
-    // Check if month already exists
-    const monthExists = formData.attendance.some(record => record.month === newAttendance.month);
+    const semester = parseInt(newAttendance.semester);
+    if (semester >= parseInt(formData.current_semester)) {
+      toast.error('Cannot add attendance for current or future semesters');
+      return;
+    }
 
-    if (monthExists) {
-      toast.error('Attendance for this month already exists');
+    // Check if semester already exists
+    const semesterExists = formData.attendance.some(record => record.semester === semester);
+
+    if (semesterExists) {
+      toast.error('Attendance for this semester already exists');
       return;
     }
 
     const updatedAttendance = [...formData.attendance, {
-      month: newAttendance.month,
-      attendance: parseFloat(newAttendance.attendance)
+      semester: semester,
+      average_attendance: parseFloat(newAttendance.average_attendance)
     }];
 
-    // Sort attendance records by month
-    const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    updatedAttendance.sort((a, b) => monthOrder.indexOf(a.month) - monthOrder.indexOf(b.month));
+    // Sort attendance records by semester
+    updatedAttendance.sort((a, b) => a.semester - b.semester);
 
     setFormData(prev => ({
       ...prev,
       attendance: updatedAttendance
     }));
 
-    setNewAttendance({ month: '', attendance: '' });
+    setNewAttendance({ semester: '', average_attendance: '' });
     setShowAttendanceModal(false);
     toast.success('Attendance added successfully');
   };
@@ -610,7 +605,7 @@ const StudentDetails = () => {
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Parent's Number</label>
+                  <label className="block text-sm font-medium text-gray-700">Parent&apos;s Number</label>
                   {isEditing ? (
                     <input
                       type="text"
@@ -807,34 +802,36 @@ const StudentDetails = () => {
                 <table className="min-w-full bg-white rounded-lg shadow-sm">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="py-2 px-4 border-b text-left">Month</th>
+                      <th className="py-2 px-4 border-b text-left">Semester</th>
                       <th className="py-2 px-4 border-b text-right">Attendance</th>
                       {isEditing && <th className="py-2 px-4 border-b text-right">Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {Array.isArray(formData.attendance) && formData.attendance.length > 0 ? (
-                      formData.attendance.map((record, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="py-2 px-4 border-b">
-                            {record.month}
-                          </td>
-                          <td className="py-2 px-4 border-b text-right">
-                            <span className="font-medium">{record.attendance}%</span>
-                          </td>
-                          {isEditing && (
-                            <td className="py-2 px-4 border-b text-right">
-                              <button
-                                onClick={() => handleRemoveAttendance(index)}
-                                className="text-red-600 hover:text-red-800 flex items-center gap-1"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                Remove
-                              </button>
+                      formData.attendance
+                        .filter(record => record.average_attendance > 0)
+                        .map((record, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="py-2 px-4 border-b">
+                              Semester {record.semester}
                             </td>
-                          )}
-                        </tr>
-                      ))
+                            <td className="py-2 px-4 border-b text-right">
+                              <span className="font-medium">{record.average_attendance}%</span>
+                            </td>
+                            {isEditing && (
+                              <td className="py-2 px-4 border-b text-right">
+                                <button
+                                  onClick={() => handleRemoveAttendance(index)}
+                                  className="text-red-600 hover:text-red-800 flex items-center gap-1"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  Remove
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        ))
                     ) : (
                       <tr>
                         <td colSpan="3" className="py-4 px-4 text-center text-gray-500">
@@ -870,7 +867,7 @@ const StudentDetails = () => {
                 <button
                   onClick={() => {
                     setShowAttendanceModal(false);
-                    setNewAttendance({ month: '', attendance: '' });
+                    setNewAttendance({ semester: '', average_attendance: '' });
                   }}
                   className="text-gray-500 hover:text-gray-700"
                 >
@@ -882,16 +879,16 @@ const StudentDetails = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Select Month
+                    Select Semester
                   </label>
                   <select
-                    value={newAttendance.month}
-                    onChange={(e) => setNewAttendance(prev => ({ ...prev, month: e.target.value }))}
+                    value={newAttendance.semester}
+                    onChange={(e) => setNewAttendance(prev => ({ ...prev, semester: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   >
-                    <option value="">Select a month</option>
-                    {getMonthOptions().map((option) => (
+                    <option value="">Select a semester</option>
+                    {getSemesterOptions().map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
@@ -908,8 +905,8 @@ const StudentDetails = () => {
                       min="0"
                       max="100"
                       step="0.01"
-                      value={newAttendance.attendance}
-                      onChange={(e) => setNewAttendance(prev => ({ ...prev, attendance: e.target.value }))}
+                      value={newAttendance.average_attendance}
+                      onChange={(e) => setNewAttendance(prev => ({ ...prev, average_attendance: e.target.value }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       required
                     />
@@ -920,7 +917,7 @@ const StudentDetails = () => {
                   <button
                     onClick={() => {
                       setShowAttendanceModal(false);
-                      setNewAttendance({ month: '', attendance: '' });
+                      setNewAttendance({ semester: '', average_attendance: '' });
                     }}
                     className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                   >

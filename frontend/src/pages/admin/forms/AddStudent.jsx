@@ -106,7 +106,10 @@ const AddStudent = ({ onClose, department }) => {
         previous_cgpa: [0],
         previous_percentages: [0],
         class_rank: 0,
-        attendance: [],
+        attendance: [{
+          semester: parseInt(formData.current_semester),
+          average_attendance: 0
+        }],
         semesterProgress: [],
         achievements: [],
         photo_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.full_name)}&background=random`,
