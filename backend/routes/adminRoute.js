@@ -14,7 +14,8 @@ import {
     getAdminDetails,
     updateAdminDetails,
     importStudentsFromCSV,
-    deleteStudent
+    deleteStudent,
+    deleteTeacher  // New function for deleting teachers
 } from "../controllers/adminController.js";
 import isAuthenticated from "../middleware/isAuthenticated.js";
 import checkRole from "../middleware/checkRole.js";
@@ -76,5 +77,8 @@ router.post("/import-students", isAuthenticated, checkRole(["department_admin", 
 
 // New route for deleting a student
 router.delete("/students/:studentId", isAuthenticated, checkRole(["super_admin", "department_admin"]), deleteStudent);
+
+// New route for deleting a teacher
+router.delete("/teachers/:teacherId", isAuthenticated, checkRole(["super_admin", "department_admin"]), deleteTeacher);
 
 export default router; 

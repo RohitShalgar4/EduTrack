@@ -236,7 +236,7 @@ const DepartmentAdminDashboard = () => {
 
       <div className="max-w-9xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mt-8 text-gray-800">Welcome back, Department Admin : {authUser?.fullName}!</h1>
+          <h1 className="text-3xl font-bold mt-8 text-gray-800">Welcome back, Department Admin : {authUser?.full_name}!</h1>
           <p className="text-gray-600 mt-2">Managing: {departmentName}</p>
         </div>
 

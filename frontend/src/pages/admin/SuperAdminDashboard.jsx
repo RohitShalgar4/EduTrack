@@ -173,20 +173,68 @@ const SuperAdminDashboard = () => {
     setShowDeleteConfirm(true);
   };
 
+  const fetchTeachers = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/api/v1/admin/all/teachers`, {
+        withCredentials: true
+      });
+      if (response.data.success) {
+        setTeachers(response.data.teachers);
+        setStats(prev => ({ ...prev, teachers: response.data.teachers.length }));
+      }
+    } catch (error) {
+      console.error('Error fetching teachers:', error);
+      toast.error('Failed to fetch teachers');
+    }
+  };
+
+  const fetchStudents = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/api/v1/admin/all/students`, {
+        withCredentials: true
+      });
+      if (response.data.success) {
+        setStudents(response.data.students);
+        setStats(prev => ({ ...prev, students: response.data.students.length }));
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      toast.error('Failed to fetch students');
+    }
+  };
+
+  const fetchAdmins = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/api/v1/admin/all`, {
+        withCredentials: true
+      });
+      if (response.data.success) {
+        setAdmins(response.data.admins);
+        setStats(prev => ({ ...prev, admins: response.data.admins.length }));
+      }
+    } catch (error) {
+      console.error('Error fetching admins:', error);
+      toast.error('Failed to fetch admins');
+    }
+  };
+
   const handleDeleteConfirm = async () => {
     try {
-      let endpoint = '';
+      if (!itemToDelete || !deleteType) return;
+
+      let endpoint;
       switch (deleteType) {
-        case 'student':
-          endpoint = `${BASE_URL}/api/v1/admin/students/${itemToDelete._id}`;
-          break;
         case 'teacher':
           endpoint = `${BASE_URL}/api/v1/admin/teachers/${itemToDelete._id}`;
+          break;
+        case 'student':
+          endpoint = `${BASE_URL}/api/v1/admin/students/${itemToDelete._id}`;
           break;
         case 'admin':
           endpoint = `${BASE_URL}/api/v1/admin/${itemToDelete._id}`;
           break;
         default:
+          console.error('Invalid delete type:', deleteType);
           return;
       }
 
@@ -196,8 +244,14 @@ const SuperAdminDashboard = () => {
 
       if (response.data.success) {
         toast.success(`${deleteType.charAt(0).toUpperCase() + deleteType.slice(1)} deleted successfully`);
-        // Refresh the data
-        fetchData();
+        // Refresh the data based on the current view
+        if (deleteType === 'teacher') {
+          await fetchTeachers();
+        } else if (deleteType === 'student') {
+          await fetchStudents();
+        } else if (deleteType === 'admin') {
+          await fetchAdmins();
+        }
       }
     } catch (error) {
       console.error(`Error deleting ${deleteType}:`, error);
@@ -213,7 +267,7 @@ const SuperAdminDashboard = () => {
     <div className="w-full h-full overflow-auto py-6 px-4">
       <div className="max-w-9xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl mt-8 font-bold text-gray-800">Welcome back, Admin!</h1>
+          <h1 className="text-3xl mt-8 font-bold text-gray-800">Welcome back, SuperAdmin {authUser.full_name}!</h1>
           <p className="text-gray-600 mt-2">Track your academic progress and manage your institution</p>
         </div>
 

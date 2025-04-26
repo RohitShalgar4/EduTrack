@@ -5,6 +5,7 @@ import { Teacher } from "../models/teacherModel.js";
 
 export const addAdmin = async (req, res) => {
     try {
+        console.log('[addAdmin] Starting admin creation process');
         const {
             full_name,
             email,
@@ -13,12 +14,21 @@ export const addAdmin = async (req, res) => {
             department
         } = req.body;
 
+        console.log('[addAdmin] Request data:', {
+            full_name,
+            email,
+            phone_number,
+            role,
+            department
+        });
+
         // Define allowed departments and roles
         const allowedDepartments = ["CSE", "ENTC", "MECH", "CIVIL", "ELE"];
         const allowedRoles = ["super_admin", "department_admin"];
 
         // Validate required fields
         if (!full_name || !email || !phone_number || !role) {
+            console.log('[addAdmin] Missing required fields');
             return res.status(400).json({ 
                 success: false,
                 message: "Required fields missing: full name, email, phone number, and role are mandatory." 
@@ -27,6 +37,7 @@ export const addAdmin = async (req, res) => {
 
         // Validate role
         if (!allowedRoles.includes(role)) {
+            console.log('[addAdmin] Invalid role:', role);
             return res.status(400).json({ 
                 success: false,
                 message: "Invalid role. Must be 'super_admin' or 'department_admin'." 
@@ -36,6 +47,7 @@ export const addAdmin = async (req, res) => {
         // Validate department if role is department_admin
         if (role === 'department_admin') {
             if (!department || !allowedDepartments.includes(department)) {
+                console.log('[addAdmin] Invalid department:', department);
                 return res.status(400).json({ 
                     success: false,
                     message: "Department is required and must be valid for department admin role." 
@@ -47,6 +59,7 @@ export const addAdmin = async (req, res) => {
         const phoneRegex = /^[0-9]{10}$/;
         const cleanPhone = phone_number.toString().replace(/\D/g, '');
         if (!phoneRegex.test(cleanPhone)) {
+            console.log('[addAdmin] Invalid phone number:', cleanPhone);
             return res.status(400).json({ 
                 success: false,
                 message: "Invalid phone number format. Must be 10 digits." 
@@ -56,6 +69,7 @@ export const addAdmin = async (req, res) => {
         // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
+            console.log('[addAdmin] Invalid email format:', email);
             return res.status(400).json({ 
                 success: false,
                 message: "Invalid email format." 
@@ -65,15 +79,21 @@ export const addAdmin = async (req, res) => {
         // Check if admin already exists
         const existingAdmin = await Admin.findOne({ email });
         if (existingAdmin) {
+            console.log('[addAdmin] Admin already exists:', email);
             return res.status(400).json({ 
                 success: false,
                 message: "Admin with this email already exists." 
             });
         }
 
-        // Generate temporary password (using registration number pattern)
+        // Generate temporary password
         const tempPassword = "Admin@123";
-        const hashedPassword = await bcrypt.hash(tempPassword, 10);
+        console.log('[addAdmin] Generated temporary password');
+        
+        // Hash the password with consistent salt rounds
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(tempPassword, saltRounds);
+        console.log('[addAdmin] Password hashed successfully with salt rounds:', saltRounds);
 
         // Create new admin
         const admin = await Admin.create({
@@ -87,6 +107,12 @@ export const addAdmin = async (req, res) => {
             photo_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(full_name)}&background=random`
         });
 
+        console.log('[addAdmin] Admin created successfully:', {
+            id: admin._id,
+            email: admin.email,
+            role: admin.role
+        });
+
         // Remove password from response
         const adminResponse = admin.toObject();
         delete adminResponse.password;
@@ -98,7 +124,11 @@ export const addAdmin = async (req, res) => {
             tempPassword // Include temporary password in response
         });
     } catch (error) {
-        console.error('Error in addAdmin:', error);
+        console.error('[addAdmin] Error:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
         return res.status(500).json({ 
             success: false,
             message: "Server error",
@@ -785,6 +815,63 @@ export const deleteStudent = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in deleteStudent:', error);
+        return res.status(500).json({ 
+            success: false,
+            message: "Server error",
+            error: error.message 
+        });
+    }
+};
+
+// Delete teacher (both super admin and department admin)
+export const deleteTeacher = async (req, res) => {
+    try {
+        const { teacherId } = req.params;
+        const userDepartment = req.department;
+        const userRole = req.role;
+
+        console.log('[deleteTeacher] Starting teacher deletion process:', {
+            teacherId,
+            userDepartment,
+            userRole
+        });
+
+        // Get teacher
+        const teacher = await Teacher.findById(teacherId);
+        if (!teacher) {
+            console.log('[deleteTeacher] Teacher not found:', teacherId);
+            return res.status(404).json({ 
+                success: false,
+                message: "Teacher not found" 
+            });
+        }
+
+        // Check permissions
+        if (userRole === 'department_admin' && teacher.department !== userDepartment) {
+            console.log('[deleteTeacher] Access denied - teacher not in department:', {
+                teacherDepartment: teacher.department,
+                userDepartment
+            });
+            return res.status(403).json({ 
+                success: false,
+                message: "Access denied. Teacher not in your department" 
+            });
+        }
+
+        // Delete teacher
+        await Teacher.findByIdAndDelete(teacherId);
+        console.log('[deleteTeacher] Teacher deleted successfully:', teacherId);
+
+        return res.status(200).json({
+            success: true,
+            message: "Teacher deleted successfully"
+        });
+    } catch (error) {
+        console.error('[deleteTeacher] Error:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
         return res.status(500).json({ 
             success: false,
             message: "Server error",
