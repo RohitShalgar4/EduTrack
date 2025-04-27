@@ -1275,6 +1275,83 @@ export const getStudentsByClass = async (req, res) => {
     }
 };
 
+// Get department performance
+export const getDepartmentPerformance = async (req, res) => {
+  try {
+    const { department } = req;
+    console.log('[getDepartmentPerformance] Starting with department:', department);
+
+    // Find students in the same department as the admin
+    const students = await User.find({
+      Department: department,  // Match exact department
+      $or: [
+        { role: 'student' },
+        { registration_number: { $exists: true } }
+      ]
+    });
+
+    console.log('[getDepartmentPerformance] Found students in department:', students.length);
+
+    // Calculate overall performance metrics
+    let totalAttendance = 0;
+    let totalResult = 0;
+    let validAttendanceCount = 0;
+    let validResultCount = 0;
+
+    // Calculate overall attendance and result percentages
+    students.forEach(student => {
+      // Calculate attendance
+      if (student.attendance && student.attendance.length > 0) {
+        const studentAttendance = student.attendance.reduce((sum, entry) => {
+          return sum + (entry.average_attendance || 0);
+        }, 0);
+        totalAttendance += studentAttendance;
+        validAttendanceCount++;
+      }
+
+      // Calculate result percentage
+      if (student.previous_percentages && student.previous_percentages.length > 0) {
+        const studentResult = student.previous_percentages.reduce((sum, percentage) => {
+          return sum + (percentage || 0);
+        }, 0);
+        totalResult += studentResult;
+        validResultCount++;
+      }
+    });
+
+    // Calculate averages
+    const overallAttendance = validAttendanceCount > 0 ? (totalAttendance / validAttendanceCount).toFixed(2) : 0;
+    const overallResult = validResultCount > 0 ? (totalResult / validResultCount).toFixed(2) : 0;
+
+    // Create performance data with only overall metrics
+    const performanceData = [{
+      semester: 'Overall',
+      attendance: parseFloat(overallAttendance),
+      result: parseFloat(overallResult)
+    }];
+
+    console.log('[getDepartmentPerformance] Performance data:', {
+      department,
+      overallAttendance,
+      overallResult,
+      totalStudents: students.length,
+      validAttendanceCount,
+      validResultCount
+    });
+
+    res.status(200).json({
+      success: true,
+      performance: performanceData
+    });
+  } catch (error) {
+    console.error('[getDepartmentPerformance] Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch department performance data'
+    });
+  }
+};
+
 // module.exports = {
 //     addAdmin,
 //     getAllAdmins,

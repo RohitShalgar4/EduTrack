@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Users, BookOpen, UserCog, BarChart3, UserPlus, Search, Trash2, AlertCircle } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import AddStudent from './forms/AddStudent';
 import AddTeacher from './forms/AddTeacher';
 import PropTypes from 'prop-types';
@@ -42,6 +43,7 @@ const DepartmentAdminDashboard = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [deleteType, setDeleteType] = useState(null);
+  const [performanceData, setPerformanceData] = useState([]);
   
   const authUser = useSelector((state) => state.user.authUser);
   
@@ -115,6 +117,16 @@ const DepartmentAdminDashboard = () => {
         setTeachers(teachersResponse.data.teachers);
         setStats(prev => ({ ...prev, teachers: teachersResponse.data.teachers.length }));
         console.log('[DepartmentAdminDashboard] Updated teachers count:', teachersResponse.data.teachers.length);
+      }
+
+      // Fetch performance data
+      const performanceResponse = await axios.get(`${BASE_URL}/api/v1/admin/department/performance`, {
+        withCredentials: true
+      });
+
+      if (performanceResponse.data.success) {
+        console.log('[DepartmentAdminDashboard] Performance data:', performanceResponse.data.performance);
+        setPerformanceData(performanceResponse.data.performance);
       }
 
     } catch (error) {
@@ -229,6 +241,54 @@ const DepartmentAdminDashboard = () => {
       setItemToDelete(null);
       setDeleteType(null);
     }
+  };
+
+  const renderPerformanceChart = () => {
+    if (loading) {
+      return (
+        <div className="h-64 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      );
+    }
+
+    if (!performanceData.length) {
+      return (
+        <div className="h-64 flex items-center justify-center">
+          <p className="text-gray-500">No performance data available</p>
+        </div>
+      );
+    }
+
+    return (
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart
+          data={performanceData}
+          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="semester" />
+          <YAxis yAxisId="left" orientation="left" stroke="#3B82F6" />
+          <YAxis yAxisId="right" orientation="right" stroke="#10B981" />
+          <Tooltip />
+          <Legend />
+          <Bar
+            yAxisId="left"
+            dataKey="attendance"
+            name="Attendance %"
+            fill="#3B82F6"
+            radius={[4, 4, 0, 0]}
+          />
+          <Bar
+            yAxisId="right"
+            dataKey="result"
+            name="Result %"
+            fill="#10B981"
+            radius={[4, 4, 0, 0]}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    );
   };
 
   return (
@@ -368,16 +428,8 @@ const DepartmentAdminDashboard = () => {
           <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold">Department Performance</h2>
-              <select className="border border-gray-300 rounded-md text-sm p-2">
-                <option>Last 30 Days</option>
-                <option>Last 3 Months</option>
-                <option>Last 6 Months</option>
-                <option>Last Year</option>
-              </select>
             </div>
-            <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-              <p className="text-gray-500">Department performance chart will be displayed here</p>
-            </div>
+            {renderPerformanceChart()}
           </div>
 
           <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200">

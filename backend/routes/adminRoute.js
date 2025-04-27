@@ -21,7 +21,8 @@ import {
     getDepartmentsForExport,
     getAllClasses,    // New function for getting all classes
     getClassesByDepartment,  // New function for getting department classes
-    getStudentsByClass  // New function for getting students by class
+    getStudentsByClass,  // New function for getting students by class
+    getDepartmentPerformance  // New function for getting department performance
 } from "../controllers/adminController.js";
 import isAuthenticated from "../middleware/isAuthenticated.js";
 import checkRole from "../middleware/checkRole.js";
@@ -50,8 +51,8 @@ router.get("/all/teachers", isAuthenticated, checkRole("super_admin"), getAllTea
 router.get("/department/students", isAuthenticated, checkRole("department_admin"), getStudentsByDepartment);
 router.get("/department/teachers", isAuthenticated, checkRole("department_admin"), getTeachersByDepartment);
 
-// // Update teacher in department
-// router.put("/department/teachers/:teacherId", isAuthenticated, checkRole(["super_admin", "department_admin"]), updateTeacher);
+// Department performance route
+router.get("/department/performance", isAuthenticated, checkRole("department_admin"), getDepartmentPerformance);
 
 // Department admin route for updating student details
 router.put("/student/:studentId", isAuthenticated, checkRole(["super_admin", "department_admin"] ), updateStudentDetails);
