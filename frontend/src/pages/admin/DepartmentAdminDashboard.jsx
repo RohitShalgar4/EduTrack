@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Users, BookOpen, UserCog, BarChart3, UserPlus, Search, Trash2, AlertCircle } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, ResponsiveContainer, Tooltip } from 'recharts';
 import AddStudent from './forms/AddStudent';
 import AddTeacher from './forms/AddTeacher';
 import PropTypes from 'prop-types';
@@ -246,48 +246,191 @@ const DepartmentAdminDashboard = () => {
   const renderPerformanceChart = () => {
     if (loading) {
       return (
-        <div className="h-64 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="h-72 flex items-center justify-center">
+          <div className="flex flex-col items-center space-y-3">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-600"></div>
+            <p className="text-gray-500 font-medium">Loading performance data...</p>
+          </div>
         </div>
       );
     }
-
+    
     if (!performanceData.length) {
       return (
-        <div className="h-64 flex items-center justify-center">
-          <p className="text-gray-500">No performance data available</p>
+        <div className="h-72 flex flex-col items-center justify-center space-y-4">
+          <AlertCircle size={36} className="text-gray-400" />
+          <div className="text-center">
+            <p className="text-gray-600 font-medium">No performance data available</p>
+            <p className="text-gray-500 text-sm mt-1">Performance metrics will appear here once data is available</p>
+          </div>
         </div>
       );
     }
-
+    
+    // Radar data with No. of Students and No. of 9+ CGPA Students
+    const radarData = [
+      {
+        subject: 'Attendance',
+        value: performanceData[0]?.attendance || 0,
+        fullMark: 100,
+        color: '#3B82F6',
+        description: 'Average student attendance rate'
+      },
+      {
+        subject: 'Result',
+        value: performanceData[0]?.result || 0,
+        fullMark: 100,
+        color: '#10B981',
+        description: 'Average academic performance'
+      },
+      {
+        subject: 'Achievements',
+        value: performanceData[0]?.achievements || 0,
+        fullMark: 100,
+        color: '#8B5CF6',
+        description: 'Special accomplishments and awards'
+      },
+      {
+        subject: 'No. of Students',
+        value: performanceData[0]?.students || 0,
+        fullMark: 100,
+        color: '#F59E0B',
+        description: 'Total number of students in the department'
+      },
+      {
+        subject: 'No. of 9+ CGPA Students',
+        value: performanceData[0]?.cgpa9plus || 0,
+        fullMark: 100,
+        color: '#EC4899',
+        description: 'Students with latest CGPA ≥ 9'
+      },
+    ];
+    
+    // Enhanced custom tooltip
+    const CustomTooltip = ({ active = false, payload = [] }) => {
+      if (active && payload && payload.length) {
+        const item = radarData.find(d => d.subject === payload[0]?.payload?.subject);
+        if (!item) return null;
+        return (
+          <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-3">
+            <div className="flex items-center space-x-2 mb-1">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
+              <h3 className="font-semibold text-gray-800">{item.subject}</h3>
+            </div>
+            <div className="mb-1">
+              <span className="text-2xl font-bold" style={{ color: item.color }}>{item.value}</span>
+              {item.fullMark === 100 && <span className="text-gray-500 text-sm ml-1">/ 100%</span>}
+            </div>
+            <p className="text-xs text-gray-600">{item.description}</p>
+          </div>
+        );
+      }
+      return null;
+    };
+    CustomTooltip.propTypes = {
+      active: PropTypes.bool,
+      payload: PropTypes.array
+    };
+    
+    // Custom legend renderer
+    const CustomLegend = ({ payload = [] }) => {
+      return (
+        <div className="flex flex-wrap justify-center mt-4 gap-3">
+          {payload.map((entry, index) => (
+            <div key={`legend-${index}`} className="flex items-center space-x-1">
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: entry.color }}
+              />
+              <span className="text-sm text-gray-700">{entry.value}</span>
+            </div>
+          ))}
+        </div>
+      );
+    };
+    CustomLegend.propTypes = {
+      payload: PropTypes.array
+    };
+    
     return (
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart
-          data={performanceData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="semester" />
-          <YAxis yAxisId="left" orientation="left" stroke="#3B82F6" />
-          <YAxis yAxisId="right" orientation="right" stroke="#10B981" />
-          <Tooltip />
-          <Legend />
-          <Bar
-            yAxisId="left"
-            dataKey="attendance"
-            name="Attendance %"
-            fill="#3B82F6"
-            radius={[4, 4, 0, 0]}
-          />
-          <Bar
-            yAxisId="right"
-            dataKey="result"
-            name="Result %"
-            fill="#10B981"
-            radius={[4, 4, 0, 0]}
-          />
-        </BarChart>
-      </ResponsiveContainer>
+      <div className="flex flex-col h-full">
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800">Departmental Metrics</h3>
+            <p className="text-sm text-gray-500">Performance overview for {departmentName}</p>
+          </div>
+        </div>
+        <div style={{ height: 400, width: '100%' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart 
+              cx="50%" 
+              cy="50%" 
+              outerRadius="70%" 
+              data={radarData}
+            >
+              <PolarGrid stroke="#E5E7EB" strokeDasharray="3 3" />
+              <PolarAngleAxis 
+                dataKey="subject" 
+                tick={{ 
+                  fill: '#374151', 
+                  fontSize: 12, 
+                  fontWeight: 600 
+                }} 
+                axisLine={{ stroke: '#E5E7EB' }}
+              />
+              <PolarRadiusAxis 
+                angle={90} 
+                domain={[0, 100]} 
+                axisLine={false} 
+                tick={{ fill: '#6B7280', fontSize: 10 }}
+                tickCount={5}
+                tickFormatter={(value) => `${value}%`}
+              />
+              <Radar 
+                name="Performance" 
+                dataKey="value" 
+                stroke="#3B82F6" 
+                fill="url(#radarGradient)" 
+                fillOpacity={0.6} 
+                strokeWidth={2}
+                dot={{ 
+                  fill: '#fff',
+                  stroke: '#3B82F6',
+                  strokeWidth: 2,
+                  r: 4,
+                }}
+                activeDot={{
+                  fill: '#2563EB',
+                  stroke: '#fff',
+                  strokeWidth: 2,
+                  r: 8,
+                }}
+              />
+              <Legend content={<CustomLegend />} />
+              <Tooltip content={<CustomTooltip />} />
+              <defs>
+                <linearGradient id="radarGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.8} />
+                  <stop offset="100%" stopColor="#93C5FD" stopOpacity={0.2} />
+                </linearGradient>
+              </defs>
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          {['Attendance', 'Result', 'No. of 9+ CGPA Students'].map((metric, index) => {
+            const item = radarData.find(d => d.subject === metric);
+            const value = item?.value || 0;
+            
+            return (
+              <div key={index} className="bg-gray-50 rounded-lg p-2 text-center">
+                <div className="text-sm text-gray-600">{metric}</div>
+                <div className="font-bold text-lg" style={{ color: item?.color }}>{value}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     );
   };
 

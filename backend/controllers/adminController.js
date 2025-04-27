@@ -1278,73 +1278,80 @@ export const getStudentsByClass = async (req, res) => {
 // Get department performance
 export const getDepartmentPerformance = async (req, res) => {
   try {
-    const { department } = req;
-    console.log('[getDepartmentPerformance] Starting with department:', department);
+    const { department } = req.query;
+    const userDepartment = req.department;
+    const userRole = req.role;
 
-    // Find students in the same department as the admin
+    const targetDepartment = userRole === 'super_admin' ? department : userDepartment;
+    if (!targetDepartment) {
+      return res.status(400).json({ success: false, message: 'Department is required' });
+    }
+
+    // Find students in the specified department
     const students = await User.find({
-      Department: department,  // Match exact department
+      Department: targetDepartment,
       $or: [
         { role: 'student' },
         { registration_number: { $exists: true } }
       ]
     });
 
-    console.log('[getDepartmentPerformance] Found students in department:', students.length);
-
     // Calculate overall performance metrics
     let totalAttendance = 0;
     let totalResult = 0;
+    let totalAchievements = 0;
     let validAttendanceCount = 0;
     let validResultCount = 0;
+    let validAchievementCount = 0;
+    let cgpa9plusCount = 0;
 
-    // Calculate overall attendance and result percentages
     students.forEach(student => {
-      // Calculate attendance
+      // Attendance
       if (student.attendance && student.attendance.length > 0) {
-        const studentAttendance = student.attendance.reduce((sum, entry) => {
-          return sum + (entry.average_attendance || 0);
-        }, 0);
+        const studentAttendance = student.attendance.reduce((sum, entry) => sum + (entry.average_attendance || 0), 0);
         totalAttendance += studentAttendance;
         validAttendanceCount++;
       }
-
-      // Calculate result percentage
+      // Result
       if (student.previous_percentages && student.previous_percentages.length > 0) {
-        const studentResult = student.previous_percentages.reduce((sum, percentage) => {
-          return sum + (percentage || 0);
-        }, 0);
+        const studentResult = student.previous_percentages.reduce((sum, percentage) => sum + (percentage || 0), 0);
         totalResult += studentResult;
         validResultCount++;
+      }
+      // Achievements
+      if (student.achievements && student.achievements.length > 0) {
+        totalAchievements += student.achievements.length;
+        validAchievementCount++;
+      }
+      // CGPA >= 9 in latest semester
+      if (Array.isArray(student.previous_cgpa) && student.previous_cgpa.length > 0) {
+        const latestCgpa = student.previous_cgpa[student.previous_cgpa.length - 1];
+        if (latestCgpa >= 9) {
+          cgpa9plusCount++;
+        }
       }
     });
 
     // Calculate averages
     const overallAttendance = validAttendanceCount > 0 ? (totalAttendance / validAttendanceCount).toFixed(2) : 0;
     const overallResult = validResultCount > 0 ? (totalResult / validResultCount).toFixed(2) : 0;
+    const overallAchievements = validAchievementCount > 0 ? (totalAchievements / validAchievementCount).toFixed(2) : 0;
+    const studentCount = students.length;
 
-    // Create performance data with only overall metrics
+    // Create performance data with overall metrics
     const performanceData = [{
-      semester: 'Overall',
       attendance: parseFloat(overallAttendance),
-      result: parseFloat(overallResult)
+      result: parseFloat(overallResult),
+      achievements: parseFloat(overallAchievements),
+      students: studentCount,
+      cgpa9plus: cgpa9plusCount
     }];
-
-    console.log('[getDepartmentPerformance] Performance data:', {
-      department,
-      overallAttendance,
-      overallResult,
-      totalStudents: students.length,
-      validAttendanceCount,
-      validResultCount
-    });
 
     res.status(200).json({
       success: true,
       performance: performanceData
     });
   } catch (error) {
-    console.error('[getDepartmentPerformance] Error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch department performance data'

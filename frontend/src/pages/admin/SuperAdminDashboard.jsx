@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Users, BookOpen, UserCog, BarChart3, UserPlus, Search, Trash2, AlertCircle } from 'lucide-react';
-import AddStudent from './forms/AddStudent'; // Import your AddStudent component
-import AddTeacher from './forms/AddTeacher'; // Import your AddTeacher component
-import AddAdmin from './forms/AddAdmin'; // Import your AddAdmin component
-// import AddCourse from './AddCourse'; // Import your AddCourse component
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, ResponsiveContainer, Tooltip } from 'recharts';
+import AddStudent from './forms/AddStudent';
+import AddTeacher from './forms/AddTeacher';
+import AddAdmin from './forms/AddAdmin';
 import PropTypes from 'prop-types';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -45,6 +45,9 @@ const SuperAdminDashboard = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [deleteType, setDeleteType] = useState(null);
+  const [performanceData, setPerformanceData] = useState([]);
+  const [selectedDepartment, setSelectedDepartment] = useState('CSE');
+  const [departments] = useState(['CSE', 'ENTC', 'MECH', 'CIVIL', 'ELE']);
   
   // Get the authenticated user's data from Redux
   const authUser = useSelector((state) => state.user.authUser);
@@ -263,6 +266,203 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const fetchDepartmentPerformance = async (department) => {
+    try {
+      const response = await axios.get(`${BASE_URL}/api/v1/admin/department/performance`, {
+        params: { department },
+        withCredentials: true
+      });
+
+      if (response.data.success) {
+        setPerformanceData(response.data.performance);
+      }
+    } catch (error) {
+      console.error('Error fetching department performance:', error);
+      toast.error('Failed to fetch department performance data');
+    }
+  };
+
+  useEffect(() => {
+    if (selectedDepartment) {
+      fetchDepartmentPerformance(selectedDepartment);
+    }
+  }, [selectedDepartment]);
+
+  const renderPerformanceChart = () => {
+    if (!performanceData.length) {
+      return (
+        <div className="h-64 flex items-center justify-center">
+          <p className="text-gray-500">No performance data available</p>
+        </div>
+      );
+    }
+
+    // Radar data with No. of Students and No. of 9+ CGPA Students
+    const radarData = [
+      {
+        subject: 'Attendance',
+        value: performanceData[0]?.attendance || 0,
+        fullMark: 100,
+        color: '#3B82F6',
+        description: 'Average student attendance rate'
+      },
+      {
+        subject: 'Result',
+        value: performanceData[0]?.result || 0,
+        fullMark: 100,
+        color: '#10B981',
+        description: 'Average academic performance'
+      },
+      {
+        subject: 'Achievements',
+        value: performanceData[0]?.achievements || 0,
+        fullMark: 100,
+        color: '#8B5CF6',
+        description: 'Special accomplishments and awards'
+      },
+      {
+        subject: 'No. of Students',
+        value: performanceData[0]?.students || 0,
+        fullMark: 100,
+        color: '#F59E0B',
+        description: 'Total number of students in the department'
+      },
+      {
+        subject: 'No. of 9+ CGPA Students',
+        value: performanceData[0]?.cgpa9plus || 0,
+        fullMark: 100,
+        color: '#EC4899',
+        description: 'Students with latest CGPA ≥ 9'
+      },
+    ];
+
+    // Enhanced custom tooltip
+    const CustomTooltip = ({ active = false, payload = [] }) => {
+      if (active && payload && payload.length) {
+        const item = radarData.find(d => d.subject === payload[0]?.payload?.subject);
+        if (!item) return null;
+        return (
+          <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-3">
+            <div className="flex items-center space-x-2 mb-1">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
+              <h3 className="font-semibold text-gray-800">{item.subject}</h3>
+            </div>
+            <div className="mb-1">
+              <span className="text-2xl font-bold" style={{ color: item.color }}>{item.value}</span>
+              {item.fullMark === 100 && <span className="text-gray-500 text-sm ml-1">/ 100%</span>}
+            </div>
+            <p className="text-xs text-gray-600">{item.description}</p>
+          </div>
+        );
+      }
+      return null;
+    };
+    CustomTooltip.propTypes = {
+      active: PropTypes.bool,
+      payload: PropTypes.array
+    };
+
+    // Custom legend renderer
+    const CustomLegend = ({ payload = [] }) => {
+      return (
+        <div className="flex flex-wrap justify-center mt-4 gap-3">
+          {payload.map((entry, index) => (
+            <div key={`legend-${index}`} className="flex items-center space-x-1">
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: entry.color }}
+              />
+              <span className="text-sm text-gray-700">{entry.value}</span>
+            </div>
+          ))}
+        </div>
+      );
+    };
+    CustomLegend.propTypes = {
+      payload: PropTypes.array
+    };
+
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800">Departmental Metrics</h3>
+            <p className="text-sm text-gray-500">Performance overview for {selectedDepartment}</p>
+          </div>
+        </div>
+        <div style={{ height: 400, width: '100%' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart 
+              cx="50%" 
+              cy="50%" 
+              outerRadius="70%" 
+              data={radarData}
+            >
+              <PolarGrid stroke="#E5E7EB" strokeDasharray="3 3" />
+              <PolarAngleAxis 
+                dataKey="subject" 
+                tick={{ 
+                  fill: '#374151', 
+                  fontSize: 12, 
+                  fontWeight: 600 
+                }} 
+                axisLine={{ stroke: '#E5E7EB' }}
+              />
+              <PolarRadiusAxis 
+                angle={90} 
+                domain={[0, 100]} 
+                axisLine={false} 
+                tick={{ fill: '#6B7280', fontSize: 10 }}
+                tickCount={5}
+                tickFormatter={(value) => `${value}%`}
+              />
+              <Radar 
+                name="Performance" 
+                dataKey="value" 
+                stroke="#3B82F6" 
+                fill="url(#radarGradient)" 
+                fillOpacity={0.6} 
+                strokeWidth={2}
+                dot={{ 
+                  fill: '#fff',
+                  stroke: '#3B82F6',
+                  strokeWidth: 2,
+                  r: 4,
+                }}
+                activeDot={{
+                  fill: '#2563EB',
+                  stroke: '#fff',
+                  strokeWidth: 2,
+                  r: 8,
+                }}
+              />
+              <Legend content={<CustomLegend />} />
+              <Tooltip content={<CustomTooltip />} />
+              <defs>
+                <linearGradient id="radarGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.8} />
+                  <stop offset="100%" stopColor="#93C5FD" stopOpacity={0.2} />
+                </linearGradient>
+              </defs>
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+          {['Attendance', 'Result', 'No. of 9+ CGPA Students'].map((metric, index) => {
+            const item = radarData.find(d => d.subject === metric);
+            const value = item?.value || 0;
+            return (
+              <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">{metric}</p>
+                <p className="text-xl font-bold" style={{ color: item?.color }}>{value}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="w-full h-full overflow-auto py-6 px-4">
       <div className="max-w-9xl mx-auto">
@@ -418,13 +618,6 @@ const SuperAdminDashboard = () => {
                 <UserPlus size={18} className="mr-2" />
                 Add Admin
               </button>
-              {/* <button 
-        onClick={() => setOpenModal('course')}
-        className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 px-4 rounded-lg flex items-center justify-center transition-colors duration-200"
-      >
-        <BookOpen size={18} className="mr-2" />
-        Add Course
-      </button> */}
             </div>
           </div>
         </div>
@@ -432,33 +625,19 @@ const SuperAdminDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">Student Enrollment</h2>
-              <select className="border border-gray-300 rounded-md text-sm p-2">
-                <option>Last 30 Days</option>
-                <option>Last 3 Months</option>
-                <option>Last 6 Months</option>
-                <option>Last Year</option>
+              <h2 className="text-xl font-bold">Department Performance</h2>
+              <select 
+                className="border border-gray-300 rounded-md text-sm p-2"
+                value={selectedDepartment}
+                onChange={(e) => setSelectedDepartment(e.target.value)}
+              >
+                {departments.map(dept => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
               </select>
             </div>
-            <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-              <p className="text-gray-500">Enrollment chart will be displayed here</p>
-            </div>
+            {renderPerformanceChart()}
           </div>
-
-          {/* <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
-    <div className="flex justify-between items-center mb-6">
-      <h2 className="text-xl font-bold">Performance Overview</h2>
-      <select className="border border-gray-300 rounded-md text-sm p-2">
-        <option>All Courses</option>
-        <option>Mathematics</option>
-        <option>Science</option>
-        <option>Literature</option>
-      </select>
-    </div>
-    <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-      <p className="text-gray-500">Performance chart will be displayed here</p>
-    </div>
-  </div> */}
 
           <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
             <div className="flex justify-between items-center mb-6">
@@ -500,7 +679,6 @@ const SuperAdminDashboard = () => {
                 {openModal === 'student' && 'Add Student'}
                 {openModal === 'teacher' && 'Add Teacher'}
                 {openModal === 'admin' && 'Add Admin'}
-                {/* {openModal === 'course' && 'Add Course'} */}
               </h2>
               <button
                 onClick={closeModal} // Close the modal
@@ -513,7 +691,6 @@ const SuperAdminDashboard = () => {
               {openModal === 'student' && <AddStudent onClose={closeModal} />}
               {openModal === 'teacher' && <AddTeacher onClose={closeModal} />}
               {openModal === 'admin' && <AddAdmin onClose={closeModal} />}
-              {/* {openModal === 'course' && <AddCourse onClose={closeModal} />} */}
             </div>
           </div>
         </div>
