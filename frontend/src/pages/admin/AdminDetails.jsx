@@ -83,24 +83,74 @@ const AdminDetails = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append('photo', file);
-
     try {
       setSaving(true);
-      const response = await axios.post(`${BASE_URL}/api/v1/admin/${adminId}/photo`, formData, {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+      
+      // First, get the Cloudinary configuration from the backend
+      const configResponse = await axios.get(`${BASE_URL}/api/v1/config/cloudinary`, {
+        withCredentials: true
       });
 
+      if (!configResponse.data) {
+        throw new Error('No configuration data received from server');
+      }
+
+      const { cloudName, uploadPreset } = configResponse.data;
+
+      if (!cloudName || !uploadPreset) {
+        throw new Error('Invalid Cloudinary configuration');
+      }
+
+      // Create form data for Cloudinary
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', uploadPreset);
+      formData.append('cloud_name', cloudName);
+      formData.append('resource_type', 'image');
+      formData.append('folder', 'admin_avatars');
+
+      // Upload to Cloudinary
+      const cloudinaryResponse = await axios.post(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          transformRequest: [(data) => data],
+        }
+      );
+
+      if (!cloudinaryResponse.data || !cloudinaryResponse.data.secure_url) {
+        throw new Error('No secure URL received from Cloudinary');
+      }
+
+      // Update the admin's photo_url in the database
+      const response = await axios.put(
+        `${BASE_URL}/api/v1/admin/admin/${adminId}`,
+        { photo_url: cloudinaryResponse.data.secure_url },
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
       if (response.data.success) {
+        // Update both formData and admin state with the new photo URL
+        const newPhotoUrl = cloudinaryResponse.data.secure_url;
         setFormData(prev => ({
           ...prev,
-          photo_url: response.data.photo_url
+          photo_url: newPhotoUrl
+        }));
+        setAdmin(prev => ({
+          ...prev,
+          photo_url: newPhotoUrl
         }));
         toast.success('Photo updated successfully');
+      } else {
+        toast.error(response.data.message || 'Failed to update photo');
       }
     } catch (error) {
       console.error('Error updating photo:', error);

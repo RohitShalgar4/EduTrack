@@ -609,9 +609,25 @@ export const updateAdminDetails = async (req, res) => {
         delete updates.password;
         delete updates.role;
         
+        // If photo_url is being updated, validate it
+        if (updates.photo_url) {
+            // Validate that the photo_url is a valid URL
+            try {
+                new URL(updates.photo_url);
+            } catch (error) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid photo URL format"
+                });
+            }
+        }
+        
         const admin = await Admin.findById(adminId);
         if (!admin) {
-            return res.status(404).json({ message: 'Admin not found' });
+            return res.status(404).json({ 
+                success: false,
+                message: 'Admin not found' 
+            });
         }
 
         // Update admin details
@@ -623,10 +639,18 @@ export const updateAdminDetails = async (req, res) => {
         
         // Return updated admin without password
         const updatedAdmin = await Admin.findById(adminId).select('-password');
-        res.status(200).json(updatedAdmin);
+        return res.status(200).json({
+            success: true,
+            message: "Admin details updated successfully",
+            admin: updatedAdmin
+        });
     } catch (error) {
         console.error('Error updating admin details:', error);
-        res.status(500).json({ message: 'Error updating admin details' });
+        return res.status(500).json({ 
+            success: false,
+            message: 'Error updating admin details',
+            error: error.message 
+        });
     }
 };
 
