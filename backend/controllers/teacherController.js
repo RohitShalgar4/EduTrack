@@ -205,6 +205,19 @@ export const updateTeacher = async (req, res) => {
         // Remove fields that shouldn't be updated directly
         delete updates.password;
         
+        // If photo_url is being updated, validate it
+        if (updates.photo_url) {
+            // Validate that the photo_url is a valid URL
+            try {
+                new URL(updates.photo_url);
+            } catch (error) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid photo URL format"
+                });
+            }
+        }
+        
         const teacher = await Teacher.findByIdAndUpdate(
             teacherId,
             updates,
@@ -486,32 +499,6 @@ export const getTeachersByDepartment = async (req, res) => {
       message: "Error fetching teachers"
     });
   }
-};
-
-export const updateTeacherPhoto = async (req, res) => {
-    try {
-        const { teacherId } = req.params;
-        const photoUrl = req.body.photo_url;
-
-        const teacher = await Teacher.findByIdAndUpdate(
-            teacherId,
-            { photo_url: photoUrl },
-            { new: true }
-        ).select('-password');
-
-        if (!teacher) {
-            return res.status(404).json({ message: "Teacher not found" });
-        }
-
-        return res.status(200).json({
-            success: true,
-            message: "Teacher photo updated successfully",
-            photo_url: teacher.photo_url
-        });
-    } catch (error) {
-        console.error('Error in updateTeacherPhoto:', error);
-        return res.status(500).json({ message: "Server error" });
-    }
 };
 
 // Verify teacher authentication
