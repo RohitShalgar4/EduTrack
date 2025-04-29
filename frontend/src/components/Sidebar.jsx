@@ -3,13 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   Home, 
-  Award, 
-  FileText, 
-  Settings, 
   LogOut,
   Menu,
-  Users,
-  BookOpen,
   UserPlus,
   Download
 } from 'lucide-react';
@@ -17,6 +12,9 @@ import { setAuthUser, logoutUser } from '../redux/userSlice'; // Adjust the impo
 import { BASE_URL } from '../main';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import AddStudent from '../pages/admin/forms/AddStudent';
+import AddTeacher from '../pages/admin/forms/AddTeacher';
+import AddAdmin from '../pages/admin/forms/AddAdmin';
 
 const SideBar = ({ children }) => {
   const location = useLocation();
@@ -25,6 +23,7 @@ const SideBar = ({ children }) => {
   const { authUser } = useSelector((state) => state.user);
   const [isOpen, setIsOpen] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [openModal, setOpenModal] = useState(null);
   
   // Handle animation states
   const toggleSidebar = () => {
@@ -87,38 +86,35 @@ const SideBar = ({ children }) => {
     {
       title: 'Dashboard',
       icon: <Home className="w-5 h-5" />,
-      path: '/dashboard',
+      path: authUser?.role === 'student' ? '/student/dashboard' :
+            authUser?.role === 'teacher' ? '/teacher/dashboard' :
+            authUser?.role === 'department_admin' ? '/department-admin/dashboard' :
+            '/admin/dashboard',
       roles: ['student', 'teacher', 'department_admin', 'super_admin']
     },
     {
-      title: 'Students',
-      icon: <Users className="w-5 h-5" />,
-      path: '/students',
-      roles: ['teacher', 'department_admin', 'super_admin']
-    },
-    {
-      title: 'Teachers',
+      title: 'Add Student',
       icon: <UserPlus className="w-5 h-5" />,
-      path: '/teachers',
+      onClick: () => setOpenModal('student'),
       roles: ['department_admin', 'super_admin']
     },
     {
-      title: 'Courses',
-      icon: <BookOpen className="w-5 h-5" />,
-      path: '/courses',
-      roles: ['teacher', 'department_admin', 'super_admin']
+      title: 'Add Teacher',
+      icon: <UserPlus className="w-5 h-5" />,
+      onClick: () => setOpenModal('teacher'),
+      roles: ['department_admin', 'super_admin']
+    },
+    {
+      title: 'Add Admin',
+      icon: <UserPlus className="w-5 h-5" />,
+      onClick: () => setOpenModal('admin'),
+      roles: ['super_admin']
     },
     {
       title: 'Export Data',
       icon: <Download className="w-5 h-5" />,
       path: '/export',
       roles: ['teacher', 'department_admin', 'super_admin']
-    },
-    {
-      title: 'Settings',
-      icon: <Settings className="w-5 h-5" />,
-      path: '/settings',
-      roles: ['student', 'teacher', 'department_admin', 'super_admin']
     }
   ];
 
@@ -152,14 +148,25 @@ const SideBar = ({ children }) => {
           <div className="p-4 flex-grow">
             <nav className="space-y-3 flex flex-col items-center">
               {filteredMenuItems.map((item, index) => (
-                <Link
-                  key={index}
-                  to={item.path}
-                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors w-full justify-center ${isActive(item.path)}`}
-                >
-                  {item.icon}
-                  {isOpen && <span>{item.title}</span>}
-                </Link>
+                item.onClick ? (
+                  <button
+                    key={index}
+                    onClick={item.onClick}
+                    className="flex items-center gap-3 p-3 rounded-lg text-blue-50 hover:bg-blue-600/50 transition-colors w-full justify-center"
+                  >
+                    {item.icon}
+                    {isOpen && <span>{item.title}</span>}
+                  </button>
+                ) : (
+                  <Link
+                    key={index}
+                    to={item.path}
+                    className={`flex items-center gap-3 p-3 rounded-lg transition-colors w-full justify-center ${isActive(item.path)}`}
+                  >
+                    {item.icon}
+                    {isOpen && <span>{item.title}</span>}
+                  </Link>
+                )
               ))}
               
               {/* Logout button inline with other links */}
@@ -206,6 +213,32 @@ const SideBar = ({ children }) => {
           </div>
         </main>
       </div>
+
+      {/* Modals */}
+      {openModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg w-11/12 md:w-1/2 lg:w-1/3 p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">
+                {openModal === 'student' && 'Add Student'}
+                {openModal === 'teacher' && 'Add Teacher'}
+                {openModal === 'admin' && 'Add Admin'}
+              </h2>
+              <button
+                onClick={() => setOpenModal(null)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                &times;
+              </button>
+            </div>
+            <div>
+              {openModal === 'student' && <AddStudent onClose={() => setOpenModal(null)} department={authUser?.department} />}
+              {openModal === 'teacher' && <AddTeacher onClose={() => setOpenModal(null)} department={authUser?.department} />}
+              {openModal === 'admin' && <AddAdmin onClose={() => setOpenModal(null)} />}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

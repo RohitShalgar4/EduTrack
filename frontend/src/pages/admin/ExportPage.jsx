@@ -173,7 +173,19 @@ const ExportPage = () => {
       return;
     }
 
-    const worksheet = XLSX.utils.json_to_sheet(reportData);
+    // Get the fields to export
+    const fieldsToExport = getTableFields();
+    
+    // Create a new array with only the selected fields
+    const exportData = reportData.map(row => {
+      const newRow = {};
+      fieldsToExport.forEach(field => {
+        newRow[field] = row[field] !== undefined ? row[field] : 'N/A';
+      });
+      return newRow;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Student Report');
     XLSX.writeFile(workbook, 'student_report.xlsx');
