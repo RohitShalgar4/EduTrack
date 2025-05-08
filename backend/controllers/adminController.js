@@ -518,6 +518,17 @@ export const updateStudentDetails = async (req, res) => {
                 return obj;
             }, {});
 
+        // Validate class if provided
+        if (filteredUpdateData.class) {
+            const validClasses = ["FY", "SY", "TY", "BE"];
+            if (!validClasses.includes(filteredUpdateData.class)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid class. Must be one of: FY, SY, TY, BE"
+                });
+            }
+        }
+
         // Validate attendance data if provided
         if (filteredUpdateData.attendance) {
             // Ensure attendance data is an array

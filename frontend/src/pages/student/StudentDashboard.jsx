@@ -455,7 +455,7 @@ const StudentDashboard = () => {
           { icon: Book, label: 'Current SGPA', value: student.sgpa || '0.00' },
           { icon: Award, label: 'Current Semester', value: student.current_semester || 'Not Available' },
           { icon: Trophy, label: 'Class Rank', value: student.class_rank || '0' },
-          { icon: Clock, label: 'Attendance', value: `${student.attendance || 0}%` },
+          { icon: Clock, label: 'Overall Attendance', value: `${student.overall_attendance || 0}%` },
         ].map((stat, index) => (
           <div key={index} className="bg-white p-6 rounded-xl shadow-sm flex items-center gap-4">
             <div className="p-3 bg-gray-100 rounded-lg">

@@ -403,7 +403,8 @@ export const updateStudentDetails = async (req, res) => {
             'semesterProgress',
             'attendance',
             'photo_url',
-            'address'
+            'address',
+            'class'
         ];
 
         const filteredUpdateData = Object.keys(updateData)
@@ -412,6 +413,17 @@ export const updateStudentDetails = async (req, res) => {
                 obj[key] = updateData[key];
                 return obj;
             }, {});
+
+        // Validate class if provided
+        if (filteredUpdateData.class) {
+            const validClasses = ["FY", "SY", "TY", "BE"];
+            if (!validClasses.includes(filteredUpdateData.class)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid class. Must be one of: FY, SY, TY, BE"
+                });
+            }
+        }
 
         // Update student
         const updatedStudent = await User.findByIdAndUpdate(

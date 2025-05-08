@@ -583,6 +583,25 @@ const StudentDetails = () => {
                     <p className="mt-1 text-gray-900 font-medium">{student.class_rank || 'N/A'}</p>
                   )}
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Class</label>
+                  {isEditing ? (
+                    <select
+                      name="class"
+                      value={formData.class}
+                      onChange={handleChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    >
+                      <option value="">Select Class</option>
+                      <option value="FY">FY</option>
+                      <option value="SY">SY</option>
+                      <option value="TY">TY</option>
+                      <option value="BE">BE</option>
+                    </select>
+                  ) : (
+                    <p className="mt-1 text-gray-900 font-medium">{student.class || 'N/A'}</p>
+                  )}
+                </div>
               </div>
             </div>
 
