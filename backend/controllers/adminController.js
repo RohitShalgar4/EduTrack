@@ -1308,13 +1308,13 @@ export const getDepartmentPerformance = async (req, res) => {
     students.forEach(student => {
       // Attendance
       if (student.attendance && student.attendance.length > 0) {
-        const studentAttendance = student.attendance.reduce((sum, entry) => sum + (entry.average_attendance || 0), 0);
+        const studentAttendance = student.attendance.reduce((sum, entry) => sum + (entry.average_attendance || 0), 0) / student.attendance.length;
         totalAttendance += studentAttendance;
         validAttendanceCount++;
       }
       // Result
       if (student.previous_percentages && student.previous_percentages.length > 0) {
-        const studentResult = student.previous_percentages.reduce((sum, percentage) => sum + (percentage || 0), 0);
+        const studentResult = student.previous_percentages.reduce((sum, percentage) => sum + (percentage || 0), 0) / student.previous_percentages.length;
         totalResult += studentResult;
         validResultCount++;
       }
@@ -1333,16 +1333,14 @@ export const getDepartmentPerformance = async (req, res) => {
     });
 
     // Calculate averages
-    const overallAttendance = validAttendanceCount > 0 ? (totalAttendance / validAttendanceCount).toFixed(2) : 0;
-    const overallResult = validResultCount > 0 ? (totalResult / validResultCount).toFixed(2) : 0;
-    const overallAchievements = validAchievementCount > 0 ? (totalAchievements / validAchievementCount).toFixed(2) : 0;
+    const overallAttendance = validAttendanceCount > 0 ? Math.round((totalAttendance / validAttendanceCount) * 100) / 100 : 0;
+    const overallResult = validResultCount > 0 ? Math.round((totalResult / validResultCount) * 100) / 100 : 0;
     const studentCount = students.length;
 
     // Create performance data with overall metrics
     const performanceData = [{
       attendance: parseFloat(overallAttendance),
       result: parseFloat(overallResult),
-      achievements: parseFloat(overallAchievements),
       students: studentCount,
       cgpa9plus: cgpa9plusCount
     }];
@@ -1357,6 +1355,58 @@ export const getDepartmentPerformance = async (req, res) => {
       message: 'Failed to fetch department performance data'
     });
   }
+};
+
+// Reset student password
+export const resetStudentPassword = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const userRole = req.role;
+        const userDepartment = req.department;
+
+        // Get student
+        const student = await User.findById(studentId);
+        if (!student) {
+            return res.status(404).json({ 
+                success: false,
+                message: "Student not found" 
+            });
+        }
+
+        // Check permissions
+        if (userRole === 'department_admin' && student.Department !== userDepartment) {
+            return res.status(403).json({ 
+                success: false,
+                message: "Access denied. Student not in your department" 
+            });
+        }
+
+        // Hash default password
+        const hashedPassword = await bcrypt.hash('Student@123', 10);
+
+        // Update student password and set isFirstLogin to true
+        const updatedStudent = await User.findByIdAndUpdate(
+            studentId,
+            {
+                password: hashedPassword,
+                isFirstLogin: true
+            },
+            { new: true }
+        ).select('-password');
+
+        return res.status(200).json({
+            success: true,
+            message: "Student password reset successfully",
+            student: updatedStudent
+        });
+    } catch (error) {
+        console.error('Error in resetStudentPassword:', error);
+        return res.status(500).json({ 
+            success: false,
+            message: "Server error",
+            error: error.message 
+        });
+    }
 };
 
 // module.exports = {

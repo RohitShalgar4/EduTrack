@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, BookOpen, UserCog, BarChart3, UserPlus, Search, Trash2, AlertCircle } from 'lucide-react';
+import { Users, BookOpen, UserCog, BarChart3, UserPlus, Search, Trash2, AlertCircle, Key } from 'lucide-react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, ResponsiveContainer, Tooltip } from 'recharts';
 import AddStudent from './forms/AddStudent';
 import AddTeacher from './forms/AddTeacher';
@@ -44,6 +44,9 @@ const DepartmentAdminDashboard = () => {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [deleteType, setDeleteType] = useState(null);
   const [performanceData, setPerformanceData] = useState([]);
+  const [showResetPasswordConfirm, setShowResetPasswordConfirm] = useState(false);
+  const [itemToReset, setItemToReset] = useState(null);
+  const [isResetting, setIsResetting] = useState(false);
   
   const authUser = useSelector((state) => state.user.authUser);
   
@@ -243,6 +246,51 @@ const DepartmentAdminDashboard = () => {
     }
   };
 
+  const handleResetPasswordClick = (item) => {
+    setItemToReset(item);
+    setShowResetPasswordConfirm(true);
+  };
+
+  const handleResetPasswordConfirm = async () => {
+    try {
+      setIsResetting(true);
+      console.log('Resetting password for student:', itemToReset._id);
+      
+      const response = await axios.post(
+        `${BASE_URL}/api/v1/admin/student/${itemToReset._id}/reset-password`,
+        {},
+        { 
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('Reset password response:', response.data);
+
+      if (response.data.success) {
+        toast.success('Password reset successfully');
+        // Refresh the data
+        fetchDashboardData();
+      } else {
+        toast.error(response.data.message || 'Failed to reset password');
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      toast.error(error.response?.data?.message || 'Failed to reset password');
+    } finally {
+      setIsResetting(false);
+      setShowResetPasswordConfirm(false);
+      setItemToReset(null);
+    }
+  };
+
   const renderPerformanceChart = () => {
     if (loading) {
       return (
@@ -284,26 +332,14 @@ const DepartmentAdminDashboard = () => {
         description: 'Average academic performance'
       },
       {
-        subject: 'Achievements',
-        value: performanceData[0]?.achievements || 0,
-        fullMark: 100,
-        color: '#8B5CF6',
-        description: 'Special accomplishments and awards'
-      },
-      {
-        subject: 'No. of Students',
-        value: performanceData[0]?.students || 0,
-        fullMark: 100,
-        color: '#F59E0B',
-        description: 'Total number of students in the department'
-      },
-      {
-        subject: 'No. of 9+ CGPA Students',
-        value: performanceData[0]?.cgpa9plus || 0,
+        subject: '9+ CGPA Students',
+        value: performanceData[0]?.students && performanceData[0]?.cgpa9plus 
+          ? Math.round((performanceData[0].cgpa9plus / performanceData[0].students) * 100) 
+          : 0,
         fullMark: 100,
         color: '#EC4899',
-        description: 'Students with latest CGPA ≥ 9'
-      },
+        description: 'Percentage of students with CGPA ≥ 9'
+      }
     ];
     
     // Enhanced custom tooltip
@@ -418,14 +454,14 @@ const DepartmentAdminDashboard = () => {
           </ResponsiveContainer>
         </div>
         <div className="mt-2 grid grid-cols-3 gap-2">
-          {['Attendance', 'Result', 'No. of 9+ CGPA Students'].map((metric, index) => {
+          {['Attendance', 'Result', '9+ CGPA Students'].map((metric, index) => {
             const item = radarData.find(d => d.subject === metric);
             const value = item?.value || 0;
             
             return (
               <div key={index} className="bg-gray-50 rounded-lg p-2 text-center">
                 <div className="text-sm text-gray-600">{metric}</div>
-                <div className="font-bold text-lg" style={{ color: item?.color }}>{value}</div>
+                <div className="font-bold text-lg" style={{ color: item?.color }}>{value}%</div>
               </div>
             );
           })}
@@ -528,6 +564,15 @@ const DepartmentAdminDashboard = () => {
                       >
                         View Details
                       </button>
+                      {searchType === 'student' && (
+                        <button
+                          onClick={() => handleResetPasswordClick(result)}
+                          className="text-yellow-500 hover:text-yellow-700 p-1 rounded-full hover:bg-yellow-50 transition-colors"
+                          title="Reset Password"
+                        >
+                          <Key className="w-5 h-5" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDeleteClick(result, searchType)}
                         className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors"
@@ -661,6 +706,44 @@ const DepartmentAdminDashboard = () => {
               >
                 <Trash2 className="w-4 h-4" />
                 Delete {deleteType?.charAt(0).toUpperCase() + deleteType?.slice(1)}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Password Confirmation Modal */}
+      {showResetPasswordConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center justify-center mb-4">
+              <div className="bg-yellow-100 rounded-full p-3">
+                <Key className="w-6 h-6 text-yellow-600" />
+              </div>
+            </div>
+            <h2 className="text-xl font-semibold text-center mb-2">Reset Password</h2>
+            <p className="text-gray-600 text-center mb-6">
+              Are you sure you want to reset the password for <span className="font-semibold">{itemToReset?.full_name}</span>?
+              <br />
+              <span className="text-sm text-yellow-600">The default password will be set to "Student@123"</span>
+            </p>
+            <div className="flex flex-col sm:flex-row justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowResetPasswordConfirm(false);
+                  setItemToReset(null);
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleResetPasswordConfirm}
+                className="px-4 py-2 text-white bg-yellow-500 rounded-md hover:bg-yellow-600 transition-colors flex items-center justify-center gap-2"
+                disabled={isResetting}
+              >
+                <Key className="w-4 h-4" />
+                {isResetting ? 'Resetting...' : 'Reset Password'}
               </button>
             </div>
           </div>

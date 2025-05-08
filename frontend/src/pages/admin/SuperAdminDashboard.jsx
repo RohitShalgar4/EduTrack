@@ -314,26 +314,14 @@ const SuperAdminDashboard = () => {
         description: 'Average academic performance'
       },
       {
-        subject: 'Achievements',
-        value: performanceData[0]?.achievements || 0,
-        fullMark: 100,
-        color: '#8B5CF6',
-        description: 'Special accomplishments and awards'
-      },
-      {
-        subject: 'No. of Students',
-        value: performanceData[0]?.students || 0,
-        fullMark: 100,
-        color: '#F59E0B',
-        description: 'Total number of students in the department'
-      },
-      {
-        subject: 'No. of 9+ CGPA Students',
-        value: performanceData[0]?.cgpa9plus || 0,
+        subject: '9+ CGPA Students',
+        value: performanceData[0]?.students && performanceData[0]?.cgpa9plus 
+          ? Math.round((performanceData[0].cgpa9plus / performanceData[0].students) * 100) 
+          : 0,
         fullMark: 100,
         color: '#EC4899',
-        description: 'Students with latest CGPA ≥ 9'
-      },
+        description: 'Percentage of students with CGPA ≥ 9'
+      }
     ];
 
     // Enhanced custom tooltip
@@ -448,13 +436,13 @@ const SuperAdminDashboard = () => {
           </ResponsiveContainer>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-          {['Attendance', 'Result', 'No. of 9+ CGPA Students'].map((metric, index) => {
+          {['Attendance', 'Result', '9+ CGPA Students'].map((metric, index) => {
             const item = radarData.find(d => d.subject === metric);
             const value = item?.value || 0;
             return (
               <div key={index} className="p-3 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600">{metric}</p>
-                <p className="text-xl font-bold" style={{ color: item?.color }}>{value}</p>
+                <p className="text-xl font-bold" style={{ color: item?.color }}>{value}%</p>
               </div>
             );
           })}

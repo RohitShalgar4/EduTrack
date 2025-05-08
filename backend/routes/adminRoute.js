@@ -22,7 +22,8 @@ import {
     getAllClasses,    // New function for getting all classes
     getClassesByDepartment,  // New function for getting department classes
     getStudentsByClass,  // New function for getting students by class
-    getDepartmentPerformance  // New function for getting department performance
+    getDepartmentPerformance,
+    resetStudentPassword
 } from "../controllers/adminController.js";
 import isAuthenticated from "../middleware/isAuthenticated.js";
 import checkRole from "../middleware/checkRole.js";
@@ -89,5 +90,8 @@ router.get('/export/departments', isAuthenticated, checkRole(["super_admin", "de
 router.get("/all/classes", isAuthenticated, checkRole("super_admin"), getAllClasses);
 router.get("/department/classes", isAuthenticated, checkRole("department_admin"), getClassesByDepartment);
 router.get("/class/:class/students", isAuthenticated, checkRole(["super_admin", "department_admin"]), getStudentsByClass);
+
+// Reset student password route
+router.post("/student/:studentId/reset-password", isAuthenticated, checkRole(["super_admin", "department_admin"]), resetStudentPassword);
 
 export default router; 
