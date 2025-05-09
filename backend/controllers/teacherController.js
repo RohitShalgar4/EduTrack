@@ -13,25 +13,20 @@ export const addTeacher = async (req, res) => {
         const {
             full_name,
             email,
-            phone_number,
-            designation,
-            specialization,
-            yearOfExperience,
+            Mobile_No,
             qualification,
+            yearOfExperience,
             department: requestDepartment
         } = req.body;
 
         // Validate required fields
-        if (!full_name || !email || !phone_number || !designation || 
-            !specialization || !yearOfExperience || !qualification) {
+        if (!full_name || !email || !Mobile_No || !qualification || !yearOfExperience) {
             console.error('[addTeacher] Missing required fields:', {
                 full_name: !!full_name,
                 email: !!email,
-                phone_number: !!phone_number,
-                designation: !!designation,
-                specialization: !!specialization,
-                yearOfExperience: !!yearOfExperience,
-                qualification: !!qualification
+                Mobile_No: !!Mobile_No,
+                qualification: !!qualification,
+                yearOfExperience: !!yearOfExperience
             });
             return res.status(400).json({ 
                 success: false,
@@ -50,7 +45,7 @@ export const addTeacher = async (req, res) => {
 
         // Validate phone number
         const phoneRegex = /^[0-9]{10}$/;
-        if (!phoneRegex.test(phone_number)) {
+        if (!phoneRegex.test(Mobile_No)) {
             return res.status(400).json({ 
                 success: false,
                 message: "Invalid phone number format. Must be 10 digits." 
@@ -118,15 +113,14 @@ export const addTeacher = async (req, res) => {
             full_name,
             email,
             password: hashedPassword,
+            Mobile_No,
             department,
             qualification,
             yearOfExperience: parseInt(yearOfExperience),
-            designation,
-            specialization,
-            phone_number,
             photo_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(full_name)}&background=random`,
             isFirstLogin: true,
-            role: 'teacher'
+            role: 'teacher',
+            subjects: []
         };
 
         console.log('[addTeacher] Creating teacher with data:', {

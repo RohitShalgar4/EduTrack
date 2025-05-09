@@ -13,10 +13,8 @@ const AddTeacher = ({ onClose, department }) => {
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
-    phone_number: '',
+    Mobile_No: '',
     department: isSuperAdmin ? '' : department,
-    designation: '',
-    specialization: '',
     yearOfExperience: '',
     qualification: ''
   });
@@ -42,8 +40,8 @@ const AddTeacher = ({ onClose, department }) => {
     
     try {
       const requiredFields = [
-        'full_name', 'email', 'phone_number', 'department',
-        'designation', 'specialization', 'yearOfExperience', 'qualification'
+        'full_name', 'email', 'Mobile_No', 'department',
+        'yearOfExperience', 'qualification'
       ];
 
       const missingFields = requiredFields.filter(field => !formData[field]);
@@ -63,9 +61,9 @@ const AddTeacher = ({ onClose, department }) => {
       }
 
       const phoneRegex = /^[0-9]{10}$/;
-      const cleanPhone = formData.phone_number.replace(/\D/g, '');
+      const cleanPhone = formData.Mobile_No.replace(/\D/g, '');
       if (!phoneRegex.test(cleanPhone)) {
-        console.error('[AddTeacher] Invalid phone number format:', formData.phone_number);
+        console.error('[AddTeacher] Invalid phone number format:', formData.Mobile_No);
         toast.error('Please enter a valid 10-digit phone number');
         setLoading(false);
         return;
@@ -83,7 +81,7 @@ const AddTeacher = ({ onClose, department }) => {
         ...formData,
         department: isSuperAdmin ? formData.department : department,
         yearOfExperience: experience,
-        phone_number: cleanPhone
+        Mobile_No: cleanPhone
       };
       
       console.log('[AddTeacher] Submitting form data:', submissionData);
@@ -161,12 +159,12 @@ const AddTeacher = ({ onClose, department }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Phone Number *</label>
+              <label className="block text-sm font-medium text-gray-700">Mobile Number *</label>
               <input
                 type="tel"
-                name="phone_number"
+                name="Mobile_No"
                 required
-                value={formData.phone_number}
+                value={formData.Mobile_No}
                 onChange={handleChange}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 placeholder="10-digit mobile number"
@@ -190,32 +188,6 @@ const AddTeacher = ({ onClose, department }) => {
                 </select>
               </div>
             )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Designation *</label>
-              <input
-                type="text"
-                name="designation"
-                required
-                value={formData.designation}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                placeholder="e.g., Assistant Professor"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Specialization *</label>
-              <input
-                type="text"
-                name="specialization"
-                required
-                value={formData.specialization}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                placeholder="e.g., Machine Learning"
-              />
-            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700">Years of Experience *</label>
